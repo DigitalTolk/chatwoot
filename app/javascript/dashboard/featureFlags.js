@@ -18,4 +18,5 @@ export const FEATURE_FLAGS = {
   AUDIT_LOGS: 'audit_logs',
   MESSAGE_REPLY_TO: 'message_reply_to',
   CSAT_SETTINGS: 'csat_settings',
+  INSERT_ARTICLE_IN_REPLY: 'insert_article_in_reply',
 };
