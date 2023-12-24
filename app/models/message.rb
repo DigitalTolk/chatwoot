@@ -109,6 +109,7 @@ class Message < ApplicationRecord
   scope :non_activity_messages, -> { where.not(message_type: :activity).reorder('id desc') }
   scope :today, -> { where("date_trunc('day', created_at) = ?", Date.current) }
   scope :csat, -> { where(content_type: :input_csat) }
+  scope :csat_from_template, -> { csat.joins(csat_template_question: :csat_template) }
   scope :unanswered_csat, lambda {
     csat
       .includes(:csat_survey_response)
@@ -199,7 +200,15 @@ class Message < ApplicationRecord
     # move this to a presenter
     return self[:content] if !input_csat? || inbox.web_widget?
 
-    I18n.t('conversations.survey.response', link: "#{ENV.fetch('FRONTEND_URL', nil)}/survey/responses/#{conversation.uuid}")
+    if inbox.email? && inbox.csat_template_enabled?
+      self[:content]
+    else
+      I18n.t('conversations.survey.response', link: csat_link)
+    end
+  end
+
+  def csat_link
+    "#{ENV.fetch('FRONTEND_URL', nil)}/survey/responses/#{conversation.uuid}"
   end
 
   def email_notifiable_message?

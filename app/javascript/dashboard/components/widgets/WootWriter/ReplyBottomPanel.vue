@@ -121,6 +121,14 @@
       />
     </div>
     <div class="right-wrap">
+      <reply-to-multiple-action 
+        :inbox="inbox"
+        :conversation-id="conversationId"
+        :is-disabled="isSendDisabled"
+        :message="message"
+        :on-send="onSend"
+        :on-send-as-survey="onSendAsSurvey"
+      />
       <woot-button
         size="small"
         :class-names="buttonClass"
@@ -150,10 +158,11 @@ import VideoCallButton from '../VideoCallButton.vue';
 import AIAssistanceButton from '../AIAssistanceButton.vue';
 import { REPLY_EDITOR_MODES } from './constants';
 import { mapGetters } from 'vuex';
+import ReplyToMultipleAction from './ReplyToMultipleAction.vue';
 
 export default {
   name: 'ReplyBottomPanel',
-  components: { FileUpload, VideoCallButton, AIAssistanceButton },
+  components: { FileUpload, VideoCallButton, AIAssistanceButton, ReplyToMultipleAction },
   mixins: [eventListenerMixins, uiSettingsMixin, inboxMixin],
   props: {
     mode: {
@@ -161,6 +170,10 @@ export default {
       default: REPLY_EDITOR_MODES.REPLY,
     },
     onSend: {
+      type: Function,
+      default: () => {},
+    },
+    onSendAsSurvey: {
       type: Function,
       default: () => {},
     },

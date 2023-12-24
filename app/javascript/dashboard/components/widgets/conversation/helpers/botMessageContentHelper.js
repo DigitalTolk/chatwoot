@@ -40,10 +40,7 @@ const generateCSATContent = (
   contentAttributes,
   { ratingTitle, feedbackTitle }
 ) => {
-  const {
-    submitted_values: { csat_survey_response: surveyResponse = {} } = {},
-  } = contentAttributes;
-  const { rating, feedback_message } = surveyResponse || {};
+  const { rating, feedback_message } = contentAttributes.csat_survey_response || {};
 
   let messageContent = '';
   if (rating) {
@@ -52,6 +49,9 @@ const generateCSATContent = (
     );
     messageContent += `<div><strong>${ratingTitle}</strong></div>`;
     messageContent += `<p>${ratingObject.emoji}</p>`;
+  } else {
+    messageContent += `<div><strong>${ratingTitle}</strong></div>`;
+    messageContent += `<p>No rating yet.</p>`;
   }
   if (feedback_message) {
     messageContent += `<div><strong>${feedbackTitle}</strong></div>`;

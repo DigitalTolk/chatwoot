@@ -118,6 +118,7 @@ Rails.application.routes.draw do
             collection do
               get :active
               get :search
+              get :phone_search
               post :filter
               post :import
               get :export
@@ -145,7 +146,9 @@ Rails.application.routes.draw do
             collection do
               get :setting_status
               get :inboxes
+              get :csat_trigger
               patch :toggle_setting
+              patch :update_csat_trigger
             end
           end
           resources :custom_attribute_definitions, only: [:index, :show, :create, :update, :destroy]

@@ -6,7 +6,7 @@
           {{ $t('CSAT_SETTINGS.CARD.HEADER') }}
           <woot-switch
             class="mt-6 mx-1 mb-0 float-right"
-            :value="csat_template_enabled"
+            :value="csatTemplateEnabled"
             @input="updateCustomCsatEnabled"
           />
         </h5>
@@ -16,7 +16,20 @@
           </p>
         </div>
         <hr class="my-2" />
-        <h5 class="text-xl text-slate-800 dark:text-slate-100">
+        <h5 class="text-sm text-slate-800 dark:text-slate-100">
+          CSAT Triggers
+          <select v-model="csatTrigger" class="mt-5 mb-0" v-on:change="changeCsatTrigger">
+            <option value="conversation_all_reply">Send CSAT with all replies</option>
+            <option value="conversation_resolved">Send CSAT when conversation is closed</option>
+          </select>
+        </h5>
+        <div class="mb-5">
+          <p class="csat-description">
+            Configurate the triggers for Customer Satisfaction (CSAT)
+          </p>
+        </div>
+        <hr class="my-2" />
+        <h5 class="text-sm text-slate-800 dark:text-slate-100">
           {{ $t('CSAT_SETTINGS.TEMPLATE.TITLE') }}
           <div class="float-right mt-5">
             <woot-button
@@ -101,19 +114,22 @@ export default {
       showEditPopup: false,
       customCsatEnabled: false,
       selectedTeam: {},
+      csatTrigger: 'conversation_resolved',
     };
   },
   computed: {
     ...mapGetters({
       accountId: 'getCurrentAccountId',
       records: 'csatTemplates/records',
-      csat_template_enabled: 'csatTemplates/csatTemplateEnabled',
+      csatTemplateEnabled: 'csatTemplates/csatTemplateEnabled',
       currentTemplateId: 'csatTemplates/getCurrentTemplateId',
+      currentCsatTrigger: 'csatTemplates/getCsatTrigger'
     }),
   },
   mounted() {
     this.$store.dispatch('csatTemplates/get');
     this.$store.dispatch('csatTemplates/getStatus');
+    this.$store.dispatch('csatTemplates/getCsatTrigger')
   },
   methods: {
     openAddCsatTemplatesModal() {
@@ -131,7 +147,18 @@ export default {
     updateCustomCsatEnabled(enabled) {
       this.$store.dispatch('csatTemplates/toggleSetting', enabled);
     },
+    changeCsatTrigger(){
+      this.$store.dispatch('csatTemplates/updateCsatTrigger', this.csatTrigger);
+      this.showAlert('Successfully updated.');
+    },
   },
+  watch: {
+    currentCsatTrigger(){
+      if (this.currentCsatTrigger){
+        this.csatTrigger = this.currentCsatTrigger;
+      }
+    },
+  }
 };
 </script>
 
