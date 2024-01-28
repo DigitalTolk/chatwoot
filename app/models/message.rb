@@ -212,7 +212,7 @@ class Message < ApplicationRecord
   end
 
   def csat_link_shorten
-    return if csat_link.blank?
+    return '' if csat_link.blank?
 
     "#{csat_link[0, 17]}...#{csat_link[-17, 17]}"
   end
