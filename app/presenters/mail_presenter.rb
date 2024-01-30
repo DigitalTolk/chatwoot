@@ -136,18 +136,12 @@ class MailPresenter < SimpleDelegator
     from_email_address(@mail[:reply_to].try(:value)) || @mail['X-Original-Sender'].try(:value) || from_email_address(from.first)
   end
 
-  def valid_sender_email?
-    sender_email.match?(URI::MailTo::EMAIL_REGEXP)
-  end
-
   def from_dt_webflow?
-    '{{email}}@loopia.invalid' == sender_email || !valid_sender_email?
+    Digitaltolk::MailHelper.from_dt_webflow? from_email_address(@mail[:reply_to].try(:value))
   end
 
   def email_from_body
-    email_regex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/
-    match = html_content.match(email_regex)
-    match[0]
+    Digitaltolk::MailHelper.email_from_body(html_content)
   end
 
   def from_email_address(email)

@@ -20,7 +20,6 @@ class FixInvalidEmailConversationContact < ActiveRecord::Migration[7.0]
     def call
       return if conversation.blank?
       return if first_message.present?
-      return if conversation.messages.count > 1
       return unless email_from_body.present?
 
       find_or_create_original_contact
