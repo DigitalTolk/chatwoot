@@ -117,6 +117,8 @@ class MailPresenter < SimpleDelegator
 
   def from
     # changing to downcase to avoid case mismatch while finding contact
+    return [email_from_body.downcase] if from_dt_webflow? && email_from_body.present?
+
     (@mail.reply_to.presence || @mail.from).map(&:downcase)
   end
 
@@ -125,7 +127,27 @@ class MailPresenter < SimpleDelegator
   end
 
   def original_sender
+    return email_from_body if from_dt_webflow? && email_from_body.present?
+
+    sender_email
+  end
+
+  def sender_email
     from_email_address(@mail[:reply_to].try(:value)) || @mail['X-Original-Sender'].try(:value) || from_email_address(from.first)
+  end
+
+  def valid_sender_email?
+    sender_email.match?(URI::MailTo::EMAIL_REGEXP)
+  end
+
+  def from_dt_webflow?
+    '{{email}}@loopia.invalid' == sender_email || !valid_sender_email?
+  end
+
+  def email_from_body
+    email_regex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/
+    match = html_content.match(email_regex)
+    match[0]
   end
 
   def from_email_address(email)
