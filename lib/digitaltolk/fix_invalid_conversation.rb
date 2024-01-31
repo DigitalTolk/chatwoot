@@ -48,7 +48,7 @@ class Digitaltolk::FixInvalidConversation
     return @email_from_body if defined?(@email_from_body)
 
     email_regex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/
-    match = first_message.content.match(email_regex)
+    match = first_message.content.to_s.match(email_regex)
     return if match.nil?
     
     @email_from_body = match[0]

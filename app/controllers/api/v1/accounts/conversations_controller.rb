@@ -96,7 +96,13 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   end
 
   def get
+    # todo: unused?
     render json: { total: @conversation.inbox.csat_template.questions_count }
+  end
+
+  def ticket
+    result = Digitaltolk::SendEmailTicketService.new(Current.account, Current.user, params).perform
+    render json: result
   end
 
   private
