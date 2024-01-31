@@ -25,7 +25,7 @@ class FixInvalidEmailConversationContact < ActiveRecord::Migration[7.0]
       find_or_create_original_contact
       fix_conversation_contact
       fix_message_email
-      puts "\n Successfully fix conversation data!"
+      puts "\n Successfully fix conversation data! #{conversation.id}"
     end
 
     private
