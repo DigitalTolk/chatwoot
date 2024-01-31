@@ -12,4 +12,16 @@ class Digitaltolk::MailHelper
 
     email == INVALID_LOOPIA_EMAIL
   end
+
+  def self.auto_reply?(message)
+    return false if message.blank?
+
+    subject = message.content_attributes.dig(:email, :subject).to_s
+    return true if subject.downcase.include?('auto')
+    return true if message.content.to_s.downcase.include?('auto')
+
+    # considered autoreply
+    other_messages = message.conversation.messages.where.not(id: message.id)
+    message.content.length > 5 && other_messages.where(content: message.content).exists?
+  end
 end

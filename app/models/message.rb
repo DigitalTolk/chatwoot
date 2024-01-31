@@ -348,6 +348,7 @@ class Message < ApplicationRecord
   def reopen_conversation
     return if conversation.muted?
     return unless incoming?
+    return if Digitaltolk::MailHelper.auto_reply?(message)
 
     conversation.open! if conversation.snoozed?
 
