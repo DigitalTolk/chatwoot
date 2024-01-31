@@ -15,13 +15,12 @@ class Digitaltolk::MailHelper
 
   def self.auto_reply?(message)
     return false if message.blank?
+    return true if message.auto_reply?
 
-    subject = message.content_attributes.dig(:email, :subject).to_s
-    return true if subject.downcase.include?('auto')
-    return true if message.content.to_s.downcase.include?('auto')
+    subject = message.content_attributes.dig(:email, :subject).to_s.downcase
+    return true if subject.include?('automatsvar')
+    return true if subject.include?('autoresponder')
 
-    # considered autoreply
-    other_messages = message.conversation.messages.where.not(id: message.id)
-    message.content.length > 5 && other_messages.where(content: message.content).exists?
+    subject.include?('autoreply')
   end
 end

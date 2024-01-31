@@ -4,6 +4,7 @@
 #
 #  id                        :integer          not null, primary key
 #  additional_attributes     :jsonb
+#  auto_reply                :boolean          default(FALSE)
 #  content                   :text
 #  content_attributes        :json
 #  content_type              :integer          default("text"), not null
@@ -348,7 +349,7 @@ class Message < ApplicationRecord
   def reopen_conversation
     return if conversation.muted?
     return unless incoming?
-    return if Digitaltolk::MailHelper.auto_reply?(message)
+    return if Digitaltolk::MailHelper.auto_reply?(self)
 
     conversation.open! if conversation.snoozed?
 

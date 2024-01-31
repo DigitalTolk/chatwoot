@@ -140,6 +140,15 @@ class MailPresenter < SimpleDelegator
     Digitaltolk::MailHelper.from_dt_webflow? from_email_address(@mail[:reply_to].try(:value))
   end
 
+  def auto_reply?
+    return true if @mail['X-Autoreply'].try(:value).present?
+    return true if @mail['X-Autorespond'].try(:value).present?
+    return true if @mail['Auto-Submitted'].try(:value).present? && @mail['Auto-Submitted'].try(:value).to_s != 'no'
+    return true if @mail['Precedence'].try(:value).to_s.downcase == 'auto_reply'
+
+    false
+  end
+
   def email_from_body
     Digitaltolk::MailHelper.email_from_body(html_content)
   end
