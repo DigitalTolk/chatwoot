@@ -81,6 +81,7 @@ Rails.application.routes.draw do
               get :meta
               get :search
               post :filter
+              post :ticket
             end
             scope module: :conversations do
               resources :messages, only: [:index, :create, :destroy] do
@@ -106,7 +107,6 @@ Rails.application.routes.draw do
               post :unread
               post :custom_attributes
               get :attachments
-              post :ticket
             end
           end
 

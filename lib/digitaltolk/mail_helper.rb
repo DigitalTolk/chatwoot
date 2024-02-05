@@ -6,7 +6,7 @@ class Digitaltolk::MailHelper
     return if html_content.blank?
 
     match = html_content.to_s.match(EMAIL_REGEX)
-    match[0]
+    match.first
   rescue
     nil
   end
