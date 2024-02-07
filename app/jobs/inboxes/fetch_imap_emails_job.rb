@@ -49,7 +49,7 @@ class Inboxes::FetchImapEmailsJob < ApplicationJob
   end
 
   def email_already_present?(channel, inbound_mail, _last_email_time)
-    channel.inbox.messages.find_by(source_id: inbound_mail.message_id).present?
+    channel.inbox.messages.where(source_id: inbound_mail.message_id).exists?
   end
 
   def received_mails(imap_inbox)
@@ -89,7 +89,7 @@ class Inboxes::FetchImapEmailsJob < ApplicationJob
   def mail_info_logger(channel, inbound_mail, message_id)
     return if Rails.env.test?
 
-    Rails.logger.info("
+    Rails.logger.warn("
       #{channel.provider} Email id: #{inbound_mail.from} and message_source_id: #{inbound_mail.message_id}, message_id: #{message_id}")
   end
 
