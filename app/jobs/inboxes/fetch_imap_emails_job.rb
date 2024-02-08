@@ -27,7 +27,7 @@ class Inboxes::FetchImapEmailsJob < ApplicationJob
     if channel.microsoft?
       fetch_mail_for_ms_provider(channel)
     else
-      (fetch_mail_for_channelchannel)
+      fetch_mail_for_channel(channel)
     end
     # clearing old failures like timeouts since the mail is now successfully processed
     channel.reauthorized!
