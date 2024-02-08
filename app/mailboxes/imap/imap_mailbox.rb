@@ -1,10 +1,11 @@
 class Imap::ImapMailbox
   include MailboxHelper
-  attr_accessor :channel, :account, :inbox, :conversation, :processed_mail
+  attr_accessor :channel, :account, :inbox, :conversation, :processed_mail, :uid
 
-  def process(mail, channel)
+  def process(mail, channel, uid=nil)
     @inbound_mail = mail
     @channel = channel
+    @uid = uid
     load_account
     load_inbox
     decorate_mail

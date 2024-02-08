@@ -27,7 +27,7 @@ class Inboxes::FetchImapEmailsJob < ApplicationJob
     if channel.microsoft?
       fetch_mail_for_ms_provider(channel)
     else
-      fetch_mail_for_channel(channel)
+      fetch_mail_for_channel2(channel)
     end
     # clearing old failures like timeouts since the mail is now successfully processed
     channel.reauthorized!
@@ -48,12 +48,40 @@ class Inboxes::FetchImapEmailsJob < ApplicationJob
     end
   end
 
+  def fetch_mail_for_channel2(channel)
+    imap_inbox = authenticated_imap_inbox(channel, channel.imap_password, 'PLAIN')
+    last_email_time = DateTime.parse(Net::IMAP.format_datetime(last_email_time(channel)))
+
+    uids = received_mails_uids(imap_inbox)
+    saved_uid = channel.inbox.messages.where(email_uid: uids).pluck(:email_uid).map(&:to_i)
+    start_timer = Time.now
+    nonexisting_uids = (uids - saved_uid)
+
+    nonexisting_uids.each do |uid|
+      inbound_mail = Mail.read_from_string imap_inbox.uid_fetch(uid, 'RFC822')[0].attr['RFC822']
+
+      mail_info_logger(channel, inbound_mail, uid)
+
+      next if email_already_present?(channel, inbound_mail, last_email_time)
+
+      process_mail(inbound_mail, channel, uid)
+    end
+
+    Rails.logger.warn "Total Message IDs: #{uids.count}"
+    Rails.logger.warn "Saved Message IDs: #{saved_uid.count}"
+    Rails.logger.warn "Processed Message IDs: #{nonexisting_uids.count} in #{Time.now - start_timer}s"
+  end
+
   def email_already_present?(channel, inbound_mail, _last_email_time)
     channel.inbox.messages.where(source_id: inbound_mail.message_id).exists?
   end
 
   def received_mails(imap_inbox)
     imap_inbox.search(['BEFORE', tomorrow, 'SINCE', yesterday])
+  end
+
+  def received_mails_uids(imap_inbox)
+    imap_inbox.uid_search(['BEFORE', tomorrow, 'SINCE', yesterday])
   end
 
   def processed_email?(current_email, last_email_time)
@@ -89,8 +117,8 @@ class Inboxes::FetchImapEmailsJob < ApplicationJob
   def mail_info_logger(channel, inbound_mail, message_id)
     return if Rails.env.test?
 
-    Rails.logger.warn("
-      #{channel.provider} Email id: #{inbound_mail.from} and message_source_id: #{inbound_mail.message_id}, message_id: #{message_id}")
+    Rails.logger.info("
+      #{channel.provider} Email id: #{inbound_mail.from} and message_source_id: #{inbound_mail.message_id}, message_uid: #{message_id}")
   end
 
   def authenticated_imap_inbox(channel, access_token, auth_method)
@@ -120,8 +148,8 @@ class Inboxes::FetchImapEmailsJob < ApplicationJob
     (Time.zone.today + 1).strftime('%d-%b-%Y')
   end
 
-  def process_mail(inbound_mail, channel)
-    Imap::ImapMailbox.new.process(inbound_mail, channel)
+  def process_mail(inbound_mail, channel, uid=nil)
+    Imap::ImapMailbox.new.process(inbound_mail, channel, uid)
   rescue StandardError => e
     ChatwootExceptionTracker.new(e, account: channel.account).capture_exception
     Rails.logger.error("

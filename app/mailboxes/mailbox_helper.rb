@@ -13,6 +13,7 @@ module MailboxHelper
       content_type: 'incoming_email',
       source_id: processed_mail.message_id,
       auto_reply: processed_mail.auto_reply?,
+      email_uid: @uid,
       content_attributes: {
         email: processed_mail.serialized_data,
         cc_email: processed_mail.cc,

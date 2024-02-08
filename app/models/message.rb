@@ -8,6 +8,7 @@
 #  content                   :text
 #  content_attributes        :json
 #  content_type              :integer          default("text"), not null
+#  email_uid                 :text
 #  external_source_ids       :jsonb
 #  message_type              :integer          not null
 #  private                   :boolean          default(FALSE), not null
@@ -32,6 +33,7 @@
 #  index_messages_on_conversation_account_type_created  (conversation_id,account_id,message_type,created_at)
 #  index_messages_on_conversation_id                    (conversation_id)
 #  index_messages_on_created_at                         (created_at)
+#  index_messages_on_email_uid                          (email_uid)
 #  index_messages_on_inbox_id                           (inbox_id)
 #  index_messages_on_sender_type_and_sender_id          (sender_type,sender_id)
 #  index_messages_on_source_id                          (source_id)
