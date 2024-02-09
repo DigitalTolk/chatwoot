@@ -6,11 +6,11 @@ class Digitaltolk::FixInvalidConversation
   end
 
   def call
-    puts "\n conversion_id_fixing: #{conversation.id}"
     return if conversation.blank?
     return if conversation.messages.blank?
     return unless first_message.present?
     return unless email_from_body.present?
+    puts "\n conversion_id_fixing: #{conversation.id}"
 
     begin
       ActiveRecord::Base.transaction do
@@ -72,7 +72,7 @@ class Digitaltolk::FixInvalidConversation
   end
 
   def find_or_create_original_contact
-    @contact = Contact.find_by(email: email_from_body)
+    @contact = Contact.where("email LIKE '%#{email_from_body}%'").first
 
     if @contact.present?
       @content.update_column(:name, identify_contact_name)
