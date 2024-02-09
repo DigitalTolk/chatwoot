@@ -75,7 +75,7 @@ class Digitaltolk::FixInvalidConversation
     @contact = Contact.where("email LIKE '%#{email_from_body}%'").first
 
     if @contact.present?
-      @content.update_column(:name, identify_contact_name)
+      @contact.update_column(:name, identify_contact_name)
       @contact_inbox = ContactInbox.find_by(inbox: inbox, contact: @contact)
     else
       create_contact
