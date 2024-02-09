@@ -22,6 +22,7 @@ class Digitaltolk::FixInvalidConversation
     rescue StandardError => e
       Rails.logger.error "Error while fixing invalid conversation #{conversation.id}"
       Rails.logger.error e.message
+      Rails.logger.error e.backtrace.first
     end
   end
 
