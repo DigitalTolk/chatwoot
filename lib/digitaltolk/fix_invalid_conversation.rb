@@ -8,9 +8,7 @@ class Digitaltolk::FixInvalidConversation
   def call
     puts "\n conversion_id_fixing: #{conversation.id}"
     return if conversation.blank?
-    return if conversation.resolved?
     return if conversation.messages.blank?
-    return if conversation.messages.incoming.count > 1
     return unless first_message.present?
     return unless email_from_body.present?
 
@@ -41,7 +39,8 @@ class Digitaltolk::FixInvalidConversation
       next if msg.blank?
       next if msg.content_attributes.blank?
       next if msg.content_attributes.dig(:email, :from).blank?
-
+      next if msg.content_attributes.dig(:email, :from) != Digitaltolk::MailHelper::INVALID_LOOPIA_EMAIL
+    
       msg.content_attributes[:email][:from] = [email_from_body]
 
       if msg.content_attributes.dig(:email, :cc).present?
@@ -75,6 +74,7 @@ class Digitaltolk::FixInvalidConversation
     @contact = Contact.find_by(email: email_from_body)
 
     if @contact.present?
+      @content.update_column(:name, identify_contact_name)
       @contact_inbox = ContactInbox.find_by(inbox: inbox, contact: @contact)
     else
       create_contact
