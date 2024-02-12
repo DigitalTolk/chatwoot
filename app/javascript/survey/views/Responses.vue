@@ -20,7 +20,8 @@
           v-if="!isRatingSubmitted"
           class="text-black-700 text-lg leading-relaxed mb-8"
         >
-          {{ $t('SURVEY.DESCRIPTION', { inboxName }) }}
+          <!-- {{ $t('SURVEY.DESCRIPTION', { inboxName }) }} -->
+          Hej! 👋, Vi vore tacksamma för att få dina synpunkter på konversationen du haft me oss.
         </p>
       </div>
 
