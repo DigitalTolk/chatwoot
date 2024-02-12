@@ -41,11 +41,18 @@
           </template>
         </div>
         <bubble-text
-          v-else-if="data.content"
+          v-else-if="notCsat"
           :message="message"
           :is-email="isEmailContentType"
           :display-quoted-button="displayQuotedButton"
         />
+
+        <bubble-csat
+          v-if="isFirstCsat"
+          :key="message.id"
+          :csat-messages="csatMessages"
+        />
+
         <bubble-integration
           :message-id="data.id"
           :content-attributes="contentAttributes"
@@ -143,6 +150,7 @@ import BubbleContact from './bubble/Contact.vue';
 import BubbleFile from './bubble/File.vue';
 import BubbleImageAudioVideo from './bubble/ImageAudioVideo.vue';
 import BubbleIntegration from './bubble/Integration.vue';
+import BubbleCsat from './bubble/Csat.vue';
 import BubbleLocation from './bubble/Location.vue';
 import BubbleMailHead from './bubble/MailHead.vue';
 import BubbleReplyTo from './bubble/ReplyTo.vue';
@@ -165,6 +173,7 @@ export default {
   components: {
     BubbleActions,
     BubbleContact,
+    BubbleCsat,
     BubbleFile,
     BubbleImageAudioVideo,
     BubbleIntegration,
@@ -211,6 +220,10 @@ export default {
       type: Object,
       default: () => ({}),
     },
+    csatMessages: {
+      type: Array,
+      default: []
+    }
   },
   data() {
     return {
@@ -234,6 +247,15 @@ export default {
       return getDayDifferenceFromNow(new Date(), this.data?.created_at) >= 1;
     },
     shouldRenderMessage() {
+      if (this.data.content_type === 'input_csat'){
+        if (!this.isFirstCsat){
+          return false;
+        }
+        if (this.currentInbox.csat_trigger === 'conversation_all_reply'){
+          return false;
+        }
+      }
+
       return (
         this.hasAttachments ||
         this.data.content ||
@@ -241,6 +263,9 @@ export default {
         this.isUnsupported ||
         this.isAnIntegrationMessage
       );
+    },
+    currentInbox(){
+      return this.$store.getters['inboxes/getInbox'](this.data.inbox_id);
     },
     emailMessageContent() {
       const {
@@ -461,6 +486,23 @@ export default {
       }
       return '';
     },
+    firstCsat(){
+      if (this.csatMessages.length === 0){
+        return null;
+      }
+
+      return this.csatMessages[0];
+    },
+    isFirstCsat(){
+      if (this.data.content_type !== 'input_csat' || !this.firstCsat){
+        return false;
+      }
+
+      return this.firstCsat.id === this.data.id;
+    },
+    notCsat(){
+      return this.data.content && this.data.content_type !== 'input_csat';
+    }
   },
   watch: {
     data() {

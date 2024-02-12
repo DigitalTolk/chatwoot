@@ -18,6 +18,7 @@
 #  enable_email_collect          :boolean          default(TRUE)
 #  greeting_enabled              :boolean          default(FALSE)
 #  greeting_message              :string
+#  label_required                :boolean          default(FALSE)
 #  lock_to_single_conversation   :boolean          default(FALSE), not null
 #  name                          :string           not null
 #  out_of_office_message         :string
@@ -128,6 +129,10 @@ class Inbox < ApplicationRecord
 
   def whatsapp?
     channel_type == 'Channel::Whatsapp'
+  end
+
+  def send_csat_on_all_reply?
+    csat_trigger == 'conversation_all_reply'
   end
 
   def assignable_agents

@@ -36,6 +36,7 @@
         :is-instagram="isInstagramDM"
         :inbox-supports-reply-to="inboxSupportsReplyTo"
         :in-reply-to="getInReplyToMessage(message)"
+        :csat-messages="getCsatMessages"
       />
       <li v-show="unreadMessageCount != 0" class="unread--toast">
         <span>
@@ -60,6 +61,7 @@
         :is-instagram-dm="isInstagramDM"
         :inbox-supports-reply-to="inboxSupportsReplyTo"
         :in-reply-to="getInReplyToMessage(message)"
+        :csat-messages="getCsatMessages"
       />
       <conversation-label-suggestion
         v-if="shouldShowLabelSuggestions"
@@ -223,6 +225,9 @@ export default {
         this.getMessages,
         this.currentChat.agent_last_seen_at
       );
+    },
+    getCsatMessages(){
+      return this.getMessages.filter( msg => msg.content_type === 'input_csat')
     },
     shouldShowSpinner() {
       return (
