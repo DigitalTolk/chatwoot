@@ -2,6 +2,7 @@
   <div
     v-if="isLoading"
     class="flex flex-1 items-center h-full bg-black-25 justify-center"
+    style="min-height: 100vh;"
   >
     <spinner size="" />
   </div>
