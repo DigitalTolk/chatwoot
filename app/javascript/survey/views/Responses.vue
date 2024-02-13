@@ -2,13 +2,12 @@
   <div
     v-if="isLoading"
     class="flex flex-1 items-center h-full bg-black-25 justify-center"
-    style="min-height: 100vh;"
   >
     <spinner size="" />
   </div>
   <div 
     v-else 
-    class="w-full h-full flex overflow-auto bg-slate-50 items-center justify-center"
+    class="csat-container w-full h-full flex overflow-auto bg-slate-50 items-center justify-center"
   >
     <div
       class="flex bg-white shadow-lg rounded-lg flex-col w-full lg:w-2/5 h-full lg:h-auto"
