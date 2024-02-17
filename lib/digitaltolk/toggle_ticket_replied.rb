@@ -16,13 +16,21 @@ class Digitaltolk::ToggleTicketReplied
 
   def post_status
     puts "ticket_replied: #{status} for #{conversation_id}"
-    # dt_url = "https://api-gateway.digitaltolk.se/api/v3/core/chatwoot/email/#{conversation_id}/response"
-    dt_url = "https://api-gateway-stg.digitaltolk.com/api/v3/core/chatwoot/email/#{conversation_id}/response"
-    headers = { 'Content-Type' => 'application/json' }
-    data = {  is_ticket_replied: status }
-    
-    response = Net::HTTP.post(URI(dt_url), data.to_json, headers)
+    response = Net::HTTP.post(URI(digitaltolk_url), data.to_json, headers)
   rescue StandardError => e
     Rails.logger.error e
+  end
+
+  def digitaltolk_url
+    # https://api-gateway.digitaltolk.se/api/v3/core/chatwoot/email/%d/response
+    "https://api-gateway-stg.digitaltolk.com/api/v3/core/chatwoot/email/#{conversation_id}/response"
+  end
+
+  def headers
+    { 'Content-Type' => 'application/json' }
+  end
+
+  def data
+    { is_ticket_replied: status }
   end
 end
