@@ -298,15 +298,6 @@ class Message < ApplicationRecord
     send_reply
     execute_message_template_hooks
     update_contact_activity
-    update_digitaltolk_replied_status
-  end
-
-  def update_digitaltolk_replied_status
-    return unless incoming? || outgoing?
-    return unless Digitaltolk::ToggleTicketReplied::ALLOWED_INBOXES.include?(inbox_id)
-    return unless conversation.custom_attributes.dig('booking_id').present?
-
-    Conversations::DigitaltolkReplyStatusJob.perform_later(conversation.display_id, incoming?)
   end
 
   def update_contact_activity
