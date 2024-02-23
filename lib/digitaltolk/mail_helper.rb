@@ -66,6 +66,8 @@ class Digitaltolk::MailHelper
 
     convo = message.conversation
     return false if convo.blank?
+    return false if convo.custom_attributes.dig('block_csat')
+    return false if convo.contact.custom_attributes.dig('block_csat')
 
     last_message = convo.messages.incoming.last
     email = message.conversation.contact.email
