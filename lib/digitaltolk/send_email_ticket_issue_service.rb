@@ -1,12 +1,11 @@
 class Digitaltolk::SendEmailTicketIssueService
-  attr_accessor :account, :user, :params, :errors, :conversation, :for_issue
+  attr_accessor :account, :user, :params, :errors, :conversation
 
   def initialize(account, user, params)
     @account = account
     @user = user
     @params = params
     @errors = []
-    @for_issue = for_issue
   end
 
   def perform

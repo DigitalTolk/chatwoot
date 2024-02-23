@@ -69,12 +69,12 @@ class Digitaltolk::SendEmailTicketService
       if @conversation.blank?
         create_conversation
         assign_booking_id
-        assing_booking_issue_id if for_issue
+        assign_booking_issue_id if for_issue
       end
     elsif for_translator?
       create_conversation
       assign_booking_id
-      assing_booking_issue_id if for_issue
+      assign_booking_issue_id if for_issue
     end
   end
 
@@ -87,7 +87,7 @@ class Digitaltolk::SendEmailTicketService
     @conversation.save
   end
 
-  def assing_booking_issue_id
+  def assign_booking_issue_id
     @conversation.custom_attributes['booking_issue_id'] = booking_issue_id
     @conversation.save
   end
