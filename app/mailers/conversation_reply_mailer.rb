@@ -160,7 +160,7 @@ class ConversationReplyMailer < ApplicationMailer
   def custom_message_id
     last_message = @message || @messages&.last
 
-    return last_message.source_id if last_message.source_id.present?
+    return last_message.source_id if last_message&.source_id.present?
 
     "<conversation/#{@conversation.uuid}/messages/#{last_message&.id}@#{channel_email_domain}>"
   end
