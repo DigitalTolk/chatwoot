@@ -93,6 +93,13 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     head :ok
   end
 
+  def change_contact
+    service = Digitaltolk::ChangeContactService.new(Current.account, @conversation, params[:email])
+    service.perform
+
+    head :ok
+  end
+
   def update_last_seen
     update_last_seen_on_conversation(DateTime.now.utc, assignee?)
   end

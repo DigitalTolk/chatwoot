@@ -72,6 +72,25 @@
         @click="onClickAssignPriority"
       />
     </div>
+    <div class="multiselect-wrap--small">
+      <contact-details-item
+        compact
+        :title="$t('CONVERSATION.CONTACT.CHANGE')"
+      />
+      <div class="input-group small">
+        <input
+          ref="inputfield"
+          v-model="changeContactEmail"
+          type="email"
+          class="input-group-field"
+          autofocus="true"
+          @keyup.enter="onChangeContact"
+        />
+        <div class="input-group-button">
+          <woot-button size="small" icon="checkmark" @click="onChangeContact" />
+        </div>
+      </div>
+    </div>
     <contact-details-item
       compact
       :title="$t('CONVERSATION_SIDEBAR.ACCORDION.CONVERSATION_LABELS')"
@@ -110,6 +129,7 @@ export default {
   },
   data() {
     return {
+      changeContactEmail: '',
       priorityOptions: [
         {
           id: null,
@@ -266,6 +286,23 @@ export default {
         this.assignedPriority.id === selectedPriorityItem.id;
 
       this.assignedPriority = isSamePriority ? null : selectedPriorityItem;
+    },
+
+    onChangeContact() {
+      alert(this.changeContactEmail)
+      const email = this.changeContactEmail
+      const conversationId = this.currentChat.id
+      this.$store
+        .dispatch('changeContact', { conversationId, email })
+        .then(() => {
+          this.showAlert('Contact changed successfully');
+          window.location.reload()
+        });
+    }
+  },
+  watch: {
+    currentChat(value) {
+      this.changeContactEmail = value.meta.sender.email
     },
   },
 };

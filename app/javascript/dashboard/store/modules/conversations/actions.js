@@ -462,6 +462,17 @@ const actions = {
     }
   },
 
+  changeContact: async ({ _ }, { conversationId, email }) => {
+    try {
+      await ConversationApi.changeContact({
+        conversationId,
+        email,
+      });
+    } catch (error ) {
+      console.log(error)
+    }
+  },
+
   setCurrentChatPriority({ commit }, { priority, conversationId }) {
     commit(types.ASSIGN_PRIORITY, { priority, conversationId });
   },
