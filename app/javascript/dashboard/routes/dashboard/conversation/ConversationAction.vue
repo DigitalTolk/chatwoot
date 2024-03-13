@@ -289,14 +289,12 @@ export default {
     },
 
     onChangeContact() {
-      alert(this.changeContactEmail)
       const email = this.changeContactEmail
       const conversationId = this.currentChat.id
       this.$store
         .dispatch('changeContact', { conversationId, email })
         .then(() => {
           this.showAlert('Contact changed successfully');
-          window.location.reload()
         });
     }
   },
