@@ -95,9 +95,8 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
 
   def change_contact
     service = Digitaltolk::ChangeContactService.new(Current.account, @conversation, params[:email])
-    service.perform
 
-    head :ok
+    render json: {success: service.perform }
   end
 
   def update_last_seen

@@ -293,8 +293,12 @@ export default {
       const conversationId = this.currentChat.id
       this.$store
         .dispatch('changeContact', { conversationId, email })
-        .then(() => {
-          this.showAlert('Contact changed successfully');
+        .then((result) => {
+          if (result.data && result.data.success) {
+            this.showAlert('Contact changed successfully');
+          } else {
+            this.showAlert('Unable to update contact');
+          }
         });
     }
   },

@@ -464,12 +464,12 @@ const actions = {
 
   changeContact: async ({ _ }, { conversationId, email }) => {
     try {
-      await ConversationApi.changeContact({
+      return await ConversationApi.changeContact({
         conversationId,
         email,
       });
     } catch (error ) {
-      console.log(error)
+      throw new Error(error);
     }
   },
 

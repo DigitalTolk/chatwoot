@@ -9,8 +9,15 @@ class Digitaltolk::ChangeContactService
   end
 
   def perform
-    find_or_create_contact
-    change_conversation_contact
+    return false unless @email =~ Digitaltolk::MailHelper::EMAIL_REGEX 
+
+    ActiveRecord::Base.transaction do
+      find_or_create_contact
+      change_conversation_contact
+      @email == @conversation.contact.email
+    end
+  rescue StandarError > e
+    false
   end
 
   private
