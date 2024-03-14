@@ -1,6 +1,5 @@
 # housekeeping
-# remove contact inboxes that does not have any conversations
-# and are older than 3 months
+# close conversations that are already stale
 
 class Internal::RemoveStaleConversationsJob < ApplicationJob
   queue_as :scheduled_jobs
