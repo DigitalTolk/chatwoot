@@ -15,7 +15,7 @@ class Digitaltolk::CloseResolvedConversationService
   def conversations
     account.conversations
            .resolved
-           .unarchived
+           .unclosed
            .joins(:messages)
            .where("messages.processed_message_content LIKE '%resolved%'")
   end
@@ -33,11 +33,11 @@ class Digitaltolk::CloseResolvedConversationService
   end
 
   def closed_emails!
-    email_conversations.update_all(archived: true)
+    email_conversations.update_all(closed: true)
   end
 
   def close_chats!
-    chat_conversations.update_all(archived: true)
+    chat_conversations.update_all(closed: true)
   end
 
   def chat_span
