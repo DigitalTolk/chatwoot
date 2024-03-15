@@ -33,11 +33,15 @@ class Digitaltolk::CloseResolvedConversationService
   end
 
   def closed_emails!
-    email_conversations.update_all(closed: true)
+    email_conversations.each do |convo|
+      convo.update(closed: true)
+    end
   end
 
   def close_chats!
-    chat_conversations.update_all(closed: true)
+    chat_conversations.each do |convo|
+      convo.update(closed: true)
+    end
   end
 
   def chat_span
