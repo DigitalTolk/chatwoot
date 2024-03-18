@@ -4,7 +4,7 @@ class Digitaltolk::ConnectOriginalConversationService
 
   def initialize(conversation, original_conversation)
     @conversation = conversation
-    @old_conversation = old_conversation
+    @original_conversation = original_conversation
   end
 
   def perform
@@ -16,12 +16,12 @@ class Digitaltolk::ConnectOriginalConversationService
 
   def private_message_params
     { 
-      content: "This conversation originates from [#{@old_conversation.display}](#{original_url})", 
+      content: "This conversation originates from [#{@original_conversation.display_id}](#{original_url})", 
       private: true
     }
   end
 
   def original_url
-    app_account_conversation_path(account_id: @old_conversation.account_id, id: @old_conversation.display_id)
+    app_account_conversation_path(account_id: @original_conversation.account_id, id: @original_conversation.display_id)
   end
 end

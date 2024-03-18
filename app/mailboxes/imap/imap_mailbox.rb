@@ -42,7 +42,7 @@ class Imap::ImapMailbox
     if message.nil?
       @inbox.conversations.unclosed.where("additional_attributes->>'in_reply_to' = ?", in_reply_to).first
     else
-      @inbox.conversations.unclosed.find(message.conversation_id)
+      @inbox.conversations.unclosed.find_by(id: message.conversation_id)
     end
   end
 
@@ -53,7 +53,7 @@ class Imap::ImapMailbox
 
     return if message.nil?
 
-    @inbox.conversations.unclosed.find(message.conversation_id)
+    @inbox.conversations.unclosed.find_by(id: message.conversation_id)
   end
 
   def in_reply_to
