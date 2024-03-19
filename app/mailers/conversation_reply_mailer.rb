@@ -159,7 +159,11 @@ class ConversationReplyMailer < ApplicationMailer
   end
 
   def custom_message_id
+<<<<<<< Updated upstream
     last_message = @message || @messages.incoming_email&.last
+=======
+    last_message = @message || @messages&.reject { |m| m.content_type == 'text' }&.last
+>>>>>>> Stashed changes
 
     return last_message.source_id if last_message&.source_id.present?
 
