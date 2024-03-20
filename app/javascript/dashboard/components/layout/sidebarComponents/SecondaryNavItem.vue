@@ -3,11 +3,17 @@
     <div v-if="hasSubMenu" class="flex justify-between">
       <span
         class="text-sm text-slate-700 dark:text-slate-200 font-semibold my-2 px-2 pt-1"
+        @click="toggleMenu"
       >
-        {{ $t(`SIDEBAR.${menuItem.label}`) }}
+        <div class="flex sidebar-chevron">
+          <fluent-icon v-if="isOpen" size="10" icon="chevron-down" class="mt-2 mr-2"/>
+          <fluent-icon v-else size="10" icon="chevron-right" type="solid" class="mt-2 mr-2"/>
+          {{ $t(`SIDEBAR.${menuItem.label}`) }}
+        </div>
       </span>
       <div v-if="menuItem.showNewButton" class="flex items-center">
         <woot-button
+          v-if="isOpen"
           size="tiny"
           variant="clear"
           color-scheme="secondary"
@@ -52,9 +58,10 @@
       </span>
     </router-link>
 
-    <ul v-if="hasSubMenu" class="list-none ml-0 mb-0">
+    <ul v-if="hasSubMenu" class="list-none ml-2 mb-0">
       <secondary-child-nav-item
         v-for="child in menuItem.children"
+        v-if="isOpen"
         :key="child.id"
         :to="child.toState"
         :label="child.label"
@@ -74,7 +81,7 @@
         :to="menuItem.toState"
         custom
       >
-        <li class="pl-1">
+        <li class="pl-1" v-if="isOpen">
           <a :href="href">
             <woot-button
               size="tiny"
@@ -216,6 +223,11 @@ export default {
       return 'hover:text-slate-700 dark:hover:text-slate-100';
     },
   },
+  data(){
+    return {
+      isOpen: true,
+    }
+  },
   methods: {
     computedInboxClass(child) {
       const { type, phoneNumber } = child;
@@ -251,6 +263,14 @@ export default {
     showChildCount(count) {
       return Number.isInteger(count);
     },
+    toggleMenu() {
+      this.isOpen = !this.isOpen;
+    }
   },
 };
 </script>
+<style lang="scss" scoped>
+  .sidebar-chevron{
+    cursor: pointer;
+  }
+</style>
