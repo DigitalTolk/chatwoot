@@ -113,6 +113,7 @@ import SecondaryChildNavItem from './SecondaryChildNavItem.vue';
 import {
   isOnMentionsView,
   isOnUnattendedView,
+  isOnRecentlyResolvedView,
 } from '../../../store/modules/conversations/helpers/actionHelpers';
 
 export default {
@@ -170,6 +171,12 @@ export default {
         this.menuItem.toStateName === 'conversation_unattended'
       );
     },
+    isRecentlyResolved(){
+      return (
+        isOnRecentlyResolvedView({ route: this.$route}) &&
+        this.menuItem.toStateName === 'conversation_recently_resolved'
+      )
+    },
     isTeamsSettings() {
       return (
         this.$store.state.route.name === 'settings_teams_edit' &&
@@ -204,7 +211,8 @@ export default {
         this.isAllConversations ||
         this.isMentions ||
         this.isUnattended ||
-        this.isCurrentRoute
+        this.isCurrentRoute ||
+        this.isRecentlyResolved
       ) {
         return 'bg-woot-25 dark:bg-slate-800 text-woot-500 dark:text-woot-500 hover:text-woot-500 dark:hover:text-woot-500 active-view';
       }
