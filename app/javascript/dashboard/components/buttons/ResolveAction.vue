@@ -71,6 +71,17 @@
             {{ $t('CONVERSATION.RESOLVE_DROPDOWN.MARK_PENDING') }}
           </woot-button>
         </woot-dropdown-item>
+        <woot-dropdown-item v-if="canCloseConversation">
+          <woot-button
+            variant="clear"
+            color-scheme="secondary"
+            size="small"
+            icon="lock-closed"
+            @click="() => closeConversation()"
+          >
+            {{ $t('CONVERSATION.RESOLVE_DROPDOWN.CLOSE') }}
+          </woot-button>
+        </woot-dropdown-item>
       </woot-dropdown-menu>
     </div>
     <woot-modal
@@ -101,6 +112,7 @@ import { findSnoozeTime } from 'dashboard/helper/snoozeHelpers';
 import WootDropdownItem from 'shared/components/ui/dropdown/DropdownItem.vue';
 import WootDropdownMenu from 'shared/components/ui/dropdown/DropdownMenu.vue';
 import uiSettingsMixin from 'dashboard/mixins/uiSettings';
+import adminMixin from 'dashboard/mixins/isAdmin';
 
 import wootConstants from 'dashboard/constants/globals';
 import {
@@ -115,7 +127,7 @@ export default {
     WootDropdownMenu,
     CustomSnoozeModal,
   },
-  mixins: [clickaway, alertMixin, eventListenerMixins,uiSettingsMixin],
+  mixins: [clickaway, alertMixin, eventListenerMixins, uiSettingsMixin, adminMixin],
   props: { conversationId: { type: [String, Number], required: true } },
   data() {
     return {
@@ -138,6 +150,12 @@ export default {
     },
     isSnoozed() {
       return this.currentChat.status === wootConstants.STATUS_TYPE.SNOOZED;
+    },
+    isClosed(){
+      return this.currentChat.closed;
+    },
+    canCloseConversation() {
+      return this.isAdmin && this.isResolved && !this.isClosed
     },
     buttonClass() {
       if (this.isPending) return 'primary';
@@ -264,6 +282,14 @@ export default {
     openSnoozeModal() {
       const ninja = document.querySelector('ninja-keys');
       ninja.open({ parent: 'snooze_conversation' });
+    },
+    closeConversation(){
+      this.closeDropdown();
+      this.$store.dispatch('closeConversation', {
+          conversationId: this.currentChat.id,
+        }).then(() => {
+          this.showAlert('Conversation is closed');
+        });
     },
   },
 };
