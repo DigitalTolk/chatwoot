@@ -144,7 +144,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   end
 
   def close
-    render json: @conversation.update(closed: true)
+    render json: @conversation.update(closed: params[:closed])
   end
 
   private

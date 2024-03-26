@@ -70,6 +70,7 @@
       "MARK_PENDING": "Mark as pending",
       "SNOOZE_UNTIL": "Snooze",
       "CLOSE": "Close",
+      "UNCLOSE": "Unclose",
       "SNOOZE": {
         "TITLE": "Snooze until",
         "NEXT_REPLY": "Next reply",

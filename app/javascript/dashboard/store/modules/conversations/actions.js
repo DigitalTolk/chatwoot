@@ -252,10 +252,11 @@ const actions = {
 
   closeConversation: async (
     _,
-    { conversationId }
+    { conversationId, closed }
   ) => {
     await ConversationApi.close({
-      conversationId
+      conversationId,
+      closed
     })
   },
 

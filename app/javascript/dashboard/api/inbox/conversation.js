@@ -54,8 +54,10 @@ class ConversationApi extends ApiClient {
     });
   }
 
-  close({ conversationId }){
-    return axios.post(`${this.url}/${conversationId}/close`)
+  close({ conversationId, closed }){
+    return axios.post(`${this.url}/${conversationId}/close`, {
+      closed
+    })
   }
 
   togglePriority({ conversationId, priority }) {

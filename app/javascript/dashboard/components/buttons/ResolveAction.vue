@@ -82,6 +82,17 @@
             {{ $t('CONVERSATION.RESOLVE_DROPDOWN.CLOSE') }}
           </woot-button>
         </woot-dropdown-item>
+        <woot-dropdown-item v-if="canUncloseConversation">
+          <woot-button
+            variant="clear"
+            color-scheme="secondary"
+            size="small"
+            icon="lock-shield"
+            @click="() => uncloseConversation()"
+          >
+            {{ $t('CONVERSATION.RESOLVE_DROPDOWN.UNCLOSE') }}
+          </woot-button>
+        </woot-dropdown-item>
       </woot-dropdown-menu>
     </div>
     <woot-modal
@@ -156,6 +167,9 @@ export default {
     },
     canCloseConversation() {
       return this.isAdmin && this.isResolved && !this.isClosed
+    },
+    canUncloseConversation(){
+      return this.isAdmin && this.isResolved && this.isClosed
     },
     buttonClass() {
       if (this.isPending) return 'primary';
@@ -287,10 +301,22 @@ export default {
       this.closeDropdown();
       this.$store.dispatch('closeConversation', {
           conversationId: this.currentChat.id,
+          closed: true
         }).then(() => {
           this.showAlert('Conversation is closed');
+          this.currentChat.closed = true
         });
     },
+    uncloseConversation(){
+      this.closeDropdown();
+      this.$store.dispatch('closeConversation', {
+          conversationId: this.currentChat.id,
+          closed: false
+        }).then(() => {
+          this.showAlert('Conversation is unclosed');
+          this.currentChat.closed = false
+        });
+    }
   },
 };
 </script>
