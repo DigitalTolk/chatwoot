@@ -15,6 +15,7 @@ module ActivityMessageHandler
     handle_priority_change(user_name)
     handle_label_change(user_name)
     handle_sla_policy_change(user_name)
+    handle_close_change(user_name)
   end
 
   def determine_user_name
@@ -46,6 +47,12 @@ module ActivityMessageHandler
     create_sla_change_activity(sla_change_type, activity_message_owner(user_name))
   end
 
+  def handle_close_change(user_name)
+    return unless saved_change_to_closed?
+
+    close_change_activity(user_name) 
+  end
+
   def status_change_activity(user_name)
     content = if Current.executed_by.present?
                 automation_status_change_activity_content
@@ -73,6 +80,22 @@ module ActivityMessageHandler
       Current.executed_by = nil
       I18n.t('conversations.activity.status.system_auto_open')
     end
+  end
+
+  def close_change_activity(user_name)
+    closed_status = closed? ? 'closed' : 'unclosed'
+
+    content = if user_name
+      "Conversation was #{closed_status} by #{user_name}"
+    else
+      if closed?
+        "Conversation was #{closed_status} by the system due to inactivity"
+      else
+        "Conversation was #{closed_status}"
+      end
+    end
+     
+    ::Conversations::ActivityMessageJob.perform_later(self, activity_message_params(content)) if content
   end
 
   def activity_message_params(content)

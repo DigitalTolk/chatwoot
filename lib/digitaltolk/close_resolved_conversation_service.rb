@@ -17,19 +17,18 @@ class Digitaltolk::CloseResolvedConversationService
            .resolved
            .unclosed
            .joins(:messages)
-           .where("messages.processed_message_content LIKE '%resolved%'")
   end
 
   def chat_conversations
-    conversations.joins(:inbox).where(inboxes: { channel_type: 'Channel::WebWidget'})
+    conversations.distinct.joins(:inbox).where(inboxes: { channel_type: 'Channel::WebWidget'})
                  .where.not(messages: { created_at: chat_span })
-                 .limit(10)
+                 .limit(50)
   end
 
   def email_conversations
-    conversations.joins(:inbox).where(inboxes: { channel_type: 'Channel::Email'})
+    conversations.distinct.joins(:inbox).where(inboxes: { channel_type: 'Channel::Email'})
                  .where.not(messages: { created_at: email_span })
-                 .limit(10)
+                 .limit(50)
   end
 
   def closed_emails!
