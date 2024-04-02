@@ -92,6 +92,8 @@ module MailboxHelper
   end
 
   def create_attachment(mail_attachment)
+    return if @message.blank?
+
     attachment = @message.attachments.new(
       account_id: @conversation.account_id,
       file_type: 'file'

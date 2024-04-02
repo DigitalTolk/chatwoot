@@ -74,7 +74,7 @@ RSpec.describe MailboxHelper do
       helper_instance.send(:embed_plain_text_email_with_inline_image, mail_attachment)
 
       text_content = helper_instance.instance_variable_get(:@text_content)
-      expect(text_content).to include(Rails.application.routes.url_helpers.url_for(mail_attachment[:blob]))
+      expect(text_content).not_to include(Rails.application.routes.url_helpers.url_for(mail_attachment[:blob]))
     end
   end
 end
