@@ -315,8 +315,7 @@ RSpec.describe ConversationReplyMailer do
       end
 
       it 'renders the reply to email' do
-        expect(mail.reply_to).to eq(["reply+#{conversation.uuid}@#{inbox.account.inbound_email_domain}"])
-        
+        expect(mail.reply_to).to eq([conversation.assignee.email])
       end
 
       it 'sets the correct custom message id' do
@@ -336,7 +335,7 @@ RSpec.describe ConversationReplyMailer do
 
       it 'set reply to email address as inbox email address' do
         expect(mail.from).to eq([inbox.account.support_email])
-        expect(mail.reply_to).to include("reply+#{conversation.uuid}@#{conversation.account.inbound_email_domain}")
+        expect(mail.reply_to).to eq([inbox.email_address])
       end
     end
 
@@ -386,11 +385,11 @@ RSpec.describe ConversationReplyMailer do
       let(:domain) { inbox.channel.email.split('@').last }
 
       it 'sets the correct custom message id' do
-        expect(mail.message_id).to eq("conversation/#{conversation.uuid}/messages/#{message.id}@mailcluster.loopia.se")
+        expect(mail.message_id).to eq("conversation/#{conversation.uuid}/messages/#{message.id}@#{domain}")
       end
 
       it 'sets the correct in reply to id' do
-        expect(mail.in_reply_to).to eq("conversation/#{conversation.uuid}/messages/#{message.id}@mailcluster.loopia.se")
+        expect(mail.in_reply_to).to eq("conversation/#{conversation.uuid}/messages/#{message.id}@#{domain}")
       end
     end
   end
