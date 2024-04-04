@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_03_08_131440) do
+ActiveRecord::Schema[7.0].define(version: 2024_04_03_124715) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -733,6 +733,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_03_08_131440) do
     t.text "processed_message_content"
     t.jsonb "sentiment", default: {}
     t.boolean "auto_reply", default: false
+    t.boolean "customized", default: false
     t.index "((additional_attributes -> 'campaign_id'::text))", name: "index_messages_on_additional_attributes_campaign_id", using: :gin
     t.index ["account_id", "inbox_id"], name: "index_messages_on_account_id_and_inbox_id"
     t.index ["account_id"], name: "index_messages_on_account_id"

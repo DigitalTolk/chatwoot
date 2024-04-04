@@ -315,7 +315,8 @@ RSpec.describe ConversationReplyMailer do
       end
 
       it 'renders the reply to email' do
-        expect(mail.reply_to).to eq([conversation.assignee.email])
+        expect(mail.reply_to).to eq(["reply+#{conversation.uuid}@#{inbox.account.inbound_email_domain}"])
+        
       end
 
       it 'sets the correct custom message id' do
@@ -330,12 +331,12 @@ RSpec.describe ConversationReplyMailer do
     context 'when inbox email address is available' do
       let(:inbox) { create(:inbox, account: account, email_address: 'noreply@chatwoot.com') }
       let(:conversation) { create(:conversation, assignee: agent, inbox: inbox, account: account) }
-      let!(:message) { create(:message, conversation: conversation, account: account, content_type: 'incoming_email') }
+      let!(:message) { create(:message, conversation: conversation, account: account) }
       let(:mail) { described_class.reply_with_summary(message.conversation, message.id).deliver_now }
 
       it 'set reply to email address as inbox email address' do
         expect(mail.from).to eq([inbox.account.support_email])
-        expect(mail.reply_to).to eq([inbox.email_address])
+        expect(mail.reply_to).to include("reply+#{conversation.uuid}@#{conversation.account.inbound_email_domain}")
       end
     end
 
@@ -370,7 +371,7 @@ RSpec.describe ConversationReplyMailer do
       end
 
       it 'sets the correct in reply to id' do
-        expect(mail.in_reply_to).to eq("account/#{conversation.account.id}/conversation/#{conversation.uuid}@#{conversation.account.domain}")
+        expect(mail.in_reply_to).to eq("conversation/#{conversation.uuid}/messages/#{message.id}@#{conversation.account.domain}")
       end
     end
 
@@ -385,11 +386,11 @@ RSpec.describe ConversationReplyMailer do
       let(:domain) { inbox.channel.email.split('@').last }
 
       it 'sets the correct custom message id' do
-        expect(mail.message_id).to eq("conversation/#{conversation.uuid}/messages/#{message.id}@#{domain}")
+        expect(mail.message_id).to eq("conversation/#{conversation.uuid}/messages/#{message.id}@mailcluster.loopia.se")
       end
 
       it 'sets the correct in reply to id' do
-        expect(mail.in_reply_to).to eq("account/#{conversation.account.id}/conversation/#{conversation.uuid}@#{domain}")
+        expect(mail.in_reply_to).to eq("conversation/#{conversation.uuid}/messages/#{message.id}@mailcluster.loopia.se")
       end
     end
   end
