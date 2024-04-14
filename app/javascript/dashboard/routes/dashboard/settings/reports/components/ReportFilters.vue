@@ -166,7 +166,7 @@
           &nbsp;
         </p>
         <reports-filters-inboxes
-          @labels-filter-selection="handleInboxFilterChange"
+          @inbox-filter-selection="handleInboxFilterChange"
           :multiple="true"
           class="mb-4"
         />
@@ -177,7 +177,7 @@
           &nbsp;
         </p>
         <reports-filters-ratings
-          @labels-filter-selection="handleRatingFilterChange"
+          @rating-filter-selection="handleRatingFilterChange"
           :multiple="true"
           class="mb-4"
         />
@@ -384,26 +384,27 @@ export default {
     customFilter(){
       return {
         selectedTeam: this.selectedTeam,
-        selectLabel: this.selectedLabel,
+        selectedLabel: this.selectedLabel,
         selectedInbox: this.selectedInbox,
         selectedRating: this.selectedRating
       }
     },
     handleTeamFilterChange(payload){
       this.selectedTeam = payload && payload.map(team => team.id)
-      this.$emit('custom-filter-change', this.customFilter());
+      this.triggerCustomFilter()
     },
     handleLabelFilterChange(payload){
+      debugger
       this.selectedLabel = payload && payload.map(team => team.title)
-      this.$emit('custom-filter-change', this.customFilter());
+      this.triggerCustomFilter()
     },
     handleInboxFilterChange(payload){
       this.selectedInbox = payload && payload.map(team => team.id)
-      this.$emit('custom-filter-change', this.customFilter());
+      this.triggerCustomFilter()
     },
     handleRatingFilterChange(payload){
       this.selectedRating = payload && payload.map(team => team.value)
-      this.$emit('custom-filter-change', this.customFilter());
+      this.triggerCustomFilter()
     },
     onChange(value) {
       this.customDateRange = value;
@@ -412,6 +413,9 @@ export default {
     changeGroupByFilterSelection() {
       this.$emit('group-by-filter-change', this.currentSelectedGroupByFilter);
     },
+    triggerCustomFilter() {
+      this.$emit('custom-filter-change', this.customFilter());
+    }
   },
 };
 </script>

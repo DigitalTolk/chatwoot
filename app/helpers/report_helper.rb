@@ -68,7 +68,7 @@ module ReportHelper
     end
 
     if selected_rating.present?
-      collection = collection.joins(:csat_survey_responses).where(csat_survey_responses: {rating: selected_rating})
+      collection = collection.joins(:csat_survey_responses).where(csat_survey_responses: {rating: selected_rating}).distinct
     end
 
     collection
@@ -88,7 +88,7 @@ module ReportHelper
     end
 
     if selected_rating.present?
-      collection = collection.joins(:csat_survey_response).where(csat_survey_responses: {rating: selected_rating})
+      collection = collection.joins(conversation: :csat_survey_responses).where(csat_survey_responses: {rating: selected_rating}).distinct
     end
 
     collection
@@ -105,6 +105,10 @@ module ReportHelper
 
     if selected_inbox.present?
       collection = collection.where(inbox_id: selected_inbox)
+    end
+
+    if selected_rating.present?
+      collection = collection.joins(conversation: :csat_survey_responses).where(csat_survey_responses: {rating: selected_rating}).distinct
     end
 
     collection
