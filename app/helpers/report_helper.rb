@@ -31,7 +31,7 @@ module ReportHelper
     end
   end
 
-  def get_filter(key, field)
+  def get_filter(key)
     filter = params.dig(:custom_filter, key)
     return [] unless filter.present?
 
@@ -39,76 +39,58 @@ module ReportHelper
   end
 
   def selected_label
-    get_filter(:selected_label, :title)
+    get_filter(:selected_label)
   end
 
   def selected_team
-    get_filter(:selected_team, :id)
+    get_filter(:selected_team)
   end
 
   def selected_inbox
-    get_filter(:selected_inbox, :id)
+    get_filter(:selected_inbox)
   end
 
   def selected_rating
-    get_filter(:selected_rating, :value)
+    get_filter(:selected_rating)
   end
 
   def filter_conversations(collection)
-    if selected_label.present?
-      collection = collection.where(cached_label_list: selected_label)
-    end
+    collection = collection.where(cached_label_list: selected_label) if selected_label.present?
 
-    if selected_team.present?
-      collection = collection.where(team_id: selected_team)
-    end
+    collection = collection.where(team_id: selected_team) if selected_team.present?
 
-    if selected_inbox.present?
-      collection = collection.where(inbox_id: selected_inbox)
-    end
+    collection = collection.where(inbox_id: selected_inbox) if selected_inbox.present?
 
     if selected_rating.present?
-      collection = collection.joins(:csat_survey_responses).where(csat_survey_responses: {rating: selected_rating}).distinct
+      collection = collection.joins(:csat_survey_responses).where(csat_survey_responses: { rating: selected_rating }).distinct
     end
 
     collection
   end
 
   def filter_messages(collection)
-    if selected_label.present?
-      collection = collection.joins(:conversation).where(conversations: {cached_label_list: selected_label})
-    end
+    collection = collection.joins(:conversation).where(conversations: { cached_label_list: selected_label }) if selected_label.present?
 
-    if selected_team.present?
-      collection = collection.joins(:conversation).where(conversations: {team_id: selected_team})
-    end
+    collection = collection.joins(:conversation).where(conversations: { team_id: selected_team }) if selected_team.present?
 
-    if selected_inbox.present?
-      collection = collection.where(inbox_id: selected_inbox)
-    end
+    collection = collection.where(inbox_id: selected_inbox) if selected_inbox.present?
 
     if selected_rating.present?
-      collection = collection.joins(conversation: :csat_survey_responses).where(csat_survey_responses: {rating: selected_rating}).distinct
+      collection = collection.joins(conversation: :csat_survey_responses).where(csat_survey_responses: { rating: selected_rating }).distinct
     end
 
     collection
   end
 
   def filter_reporting_events(collection)
-    if selected_label.present?
-      collection = collection.joins(:conversation).where(conversations: {cached_label_list: selected_label})
-    end
+    collection = collection.joins(:conversation).where(conversations: { cached_label_list: selected_label }) if selected_label.present?
 
-    if selected_team.present?
-      collection = collection.joins(:conversation).where(conversations: {team_id: selected_team})
-    end
+    collection = collection.joins(:conversation).where(conversations: { team_id: selected_team }) if selected_team.present?
 
-    if selected_inbox.present?
-      collection = collection.where(inbox_id: selected_inbox)
-    end
+    collection = collection.where(inbox_id: selected_inbox) if selected_inbox.present?
 
     if selected_rating.present?
-      collection = collection.joins(conversation: :csat_survey_responses).where(csat_survey_responses: {rating: selected_rating}).distinct
+      collection = collection.joins(conversation: :csat_survey_responses).where(csat_survey_responses: { rating: selected_rating }).distinct
     end
 
     collection
@@ -152,17 +134,17 @@ module ReportHelper
 
   def resolutions
     custom_filter(scope.reporting_events).joins(:conversation).select(:conversation_id).where(account_id: account.id, name: :conversation_resolved,
-                                                                               conversations: { status: :resolved }, created_at: range).distinct
+                                                                                              conversations: { status: :resolved }, created_at: range).distinct
   end
 
   def bot_resolutions
     custom_filter(scope.reporting_events).joins(:conversation).select(:conversation_id).where(account_id: account.id, name: :conversation_bot_resolved,
-                                                                               conversations: { status: :resolved }, created_at: range).distinct
+                                                                                              conversations: { status: :resolved }, created_at: range).distinct
   end
 
   def bot_handoffs
     custom_filter(scope.reporting_events).joins(:conversation).select(:conversation_id).where(account_id: account.id, name: :conversation_bot_handoff,
-                                                                               created_at: range).distinct
+                                                                                              created_at: range).distinct
   end
 
   def avg_first_response_time
@@ -188,7 +170,7 @@ module ReportHelper
 
   def avg_resolution_time_summary
     reporting_events = custom_filter(scope.reporting_events)
-                            .where(name: 'conversation_resolved', account_id: account.id, created_at: range)
+                       .where(name: 'conversation_resolved', account_id: account.id, created_at: range)
     avg_rt = if params[:business_hours].present?
                reporting_events.average(:value_in_business_hours)
              else
@@ -202,7 +184,7 @@ module ReportHelper
 
   def reply_time_summary
     reporting_events = custom_filter(scope.reporting_events)
-                            .where(name: 'reply_time', account_id: account.id, created_at: range)
+                       .where(name: 'reply_time', account_id: account.id, created_at: range)
     reply_time = params[:business_hours] ? reporting_events.average(:value_in_business_hours) : reporting_events.average(:value)
 
     return 0 if reply_time.blank?
@@ -212,7 +194,7 @@ module ReportHelper
 
   def avg_first_response_time_summary
     reporting_events = custom_filter(scope.reporting_events)
-                            .where(name: 'first_response', account_id: account.id, created_at: range)
+                       .where(name: 'first_response', account_id: account.id, created_at: range)
     avg_frt = if params[:business_hours].present?
                 reporting_events.average(:value_in_business_hours)
               else

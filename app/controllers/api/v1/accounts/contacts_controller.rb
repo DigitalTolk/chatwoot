@@ -35,7 +35,7 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
 
   def phone_search
     render json: { error: 'Specify search string with parameter q' }, status: :unprocessable_entity if params[:q].blank? && return
-  
+
     contacts = resolved_contacts.where(phone_number: params[:q].strip)
     render json: { found: contacts.exists?, search_key: params[:q] }
   end
