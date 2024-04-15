@@ -40,6 +40,14 @@ class Api::V1::Accounts::ContactsController < Api::V1::Accounts::BaseController
     render json: { found: contacts.exists?, search_key: params[:q] }
   end
 
+  def email_search
+    render json: { error: 'Specify search string with parameter q' }, status: :unprocessable_entity if params[:q].blank? && return
+
+    contacts = resolved_contacts.where(email: params[:q].strip)
+    @contacts_count = contacts.count
+    @contacts = fetch_contacts(contacts)
+  end
+
   def import
     render json: { error: I18n.t('errors.contacts.import.failed') }, status: :unprocessable_entity and return if params[:import_file].blank?
 
