@@ -342,8 +342,8 @@ export default {
       return this.type != 'label';
     },
     showRatingFilter(){
-      return this.type != 'rating' || this.type != 'agent';
-    }
+      return this.type != 'rating' && this.type != 'agent';
+    },
   },
   watch: {
     filterItemsList(val) {
@@ -386,7 +386,7 @@ export default {
         selectedTeam: this.selectedTeam,
         selectedLabel: this.selectedLabel,
         selectedInbox: this.selectedInbox,
-        selectedRating: this.selectedRating
+        selectedRating: this.selectedRating,
       }
     },
     handleTeamFilterChange(payload){
@@ -394,7 +394,6 @@ export default {
       this.triggerCustomFilter()
     },
     handleLabelFilterChange(payload){
-      debugger
       this.selectedLabel = payload && payload.map(team => team.title)
       this.triggerCustomFilter()
     },
