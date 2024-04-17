@@ -49,6 +49,6 @@ class ReportingEvent < ApplicationRecord
   }
 
   scope :filter_by_rating, lambda { |selected_rating|
-    where(conversation_id: CsatSurveyResponse.where(rating: selected_rating).select(:conversation_id))
+    where(conversation_id: ::CsatSurveyResponse.where(rating: selected_rating).select(:conversation_id)) if selected_rating.present?
   }
 end
