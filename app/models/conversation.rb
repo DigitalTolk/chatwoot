@@ -6,7 +6,7 @@
 #  additional_attributes  :jsonb
 #  agent_last_seen_at     :datetime
 #  assignee_last_seen_at  :datetime
-#  cached_label_list      :string
+#  cached_label_list      :text
 #  closed                 :boolean          default(FALSE)
 #  contact_last_seen_at   :datetime
 #  custom_attributes      :jsonb
@@ -58,6 +58,7 @@ class Conversation < ApplicationRecord
   include ActivityMessageHandler
   include UrlHelper
   include SortHandler
+  include PushDataHelper
   include ConversationMuteHelpers
 
   validates :account_id, presence: true
@@ -189,18 +190,6 @@ class Conversation < ApplicationRecord
     unread_messages.where(account_id: account_id).incoming.last(10)
   end
 
-  def push_event_data
-    Conversations::EventDataPresenter.new(self).push_data
-  end
-
-  def lock_event_data
-    Conversations::EventDataPresenter.new(self).lock_data
-  end
-
-  def webhook_data
-    Conversations::EventDataPresenter.new(self).push_data
-  end
-
   def cached_label_list_array
     (cached_label_list || '').split(',').map(&:strip)
   end
@@ -237,6 +226,10 @@ class Conversation < ApplicationRecord
 
   def send_with_quoted_thread?
     custom_attributes['send_quoted_thread']
+  end
+
+  def dispatch_conversation_updated_event(previous_changes = nil)
+    dispatcher_dispatch(CONVERSATION_UPDATED, previous_changes)
   end
 
   private
@@ -288,13 +281,17 @@ class Conversation < ApplicationRecord
   def notify_conversation_updation
     return unless previous_changes.keys.present? && allowed_keys?
 
-    dispatcher_dispatch(CONVERSATION_UPDATED, previous_changes)
+    dispatch_conversation_updated_event(previous_changes)
+  end
+
+  def list_of_keys
+    %w[team_id assignee_id status snoozed_until custom_attributes label_list waiting_since first_reply_created_at
+       priority]
   end
 
   def allowed_keys?
     (
-      previous_changes.keys.intersect?(%w[team_id assignee_id status snoozed_until custom_attributes label_list waiting_since first_reply_created_at
-                                          priority]) ||
+      previous_changes.keys.intersect?(list_of_keys) ||
       (previous_changes['additional_attributes'].present? && previous_changes['additional_attributes'][1].keys.intersect?(%w[conversation_language]))
     )
   end
@@ -355,5 +352,6 @@ class Conversation < ApplicationRecord
   end
 end
 
-Conversation.include_mod_with('EnterpriseConversationConcern')
+Conversation.include_mod_with('Concerns::Conversation')
 Conversation.include_mod_with('SentimentAnalysisHelper')
+Conversation.prepend_mod_with('Conversation')
