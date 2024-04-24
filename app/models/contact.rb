@@ -160,7 +160,7 @@ class Contact < ApplicationRecord
   end
 
   def self.resolved_contacts
-    where("contacts.email <> '' OR contacts.phone_number <> ''") #OR contacts.identifier <> ''")
+    where("contacts.email <> '' OR contacts.phone_number <> '' OR contacts.identifier <> ''")
   end
 
   def discard_invalid_attrs
