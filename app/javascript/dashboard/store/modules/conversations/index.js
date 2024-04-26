@@ -18,6 +18,8 @@ const state = {
   conversationParticipants: [],
   conversationLastSeen: null,
   syncConversationsMessages: {},
+  showSmartActions: false,
+  smartActions: [],
   total_csat_questions: 0,
 };
 

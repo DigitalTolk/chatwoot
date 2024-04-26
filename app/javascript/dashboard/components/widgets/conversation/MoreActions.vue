@@ -55,6 +55,7 @@ import EmailTranscriptModal from './EmailTranscriptModal.vue';
 import ResolveAction from '../../buttons/ResolveAction.vue';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import SmartActions from './SmartActions.vue';
+import inboxMixin from 'shared/mixins/inboxMixin';
 
 import {
   CMD_MUTE_CONVERSATION,
@@ -68,7 +69,7 @@ export default {
     ResolveAction,
     SmartActions,
   },
-  mixins: [alertMixin, clickaway],
+  mixins: [alertMixin, clickaway, inboxMixin],
   data() {
     return {
       showEmailActionsModal: false,
@@ -86,7 +87,10 @@ export default {
         this.accountId,
         FEATURE_FLAGS.SMART_ACTIONS
       );
-      return isFeatEnabled;
+      return isFeatEnabled && (this.isAnEmailChannel || this.isAWebWidgetInbox);
+    },
+    inbox() {
+      return this.$store.getters['inboxes/getInbox'](this.currentChat.inbox_id);
     },
   },
   mounted() {
