@@ -89,6 +89,15 @@
           variant="icon"
           @click="showCannedResponseModal"
         />
+        <menu-item
+          v-if="enabledOptions['smart_actions']"
+          :option="{
+            icon: 'star-glitters',
+            label: $t('CONVERSATION.CONTEXT_MENU.SMART_ACTIONS'),
+          }"
+          variant="icon"
+          @click="openSmartAction"
+        />
         <hr v-if="enabledOptions['delete']" />
         <menu-item
           v-if="enabledOptions['delete']"
@@ -191,6 +200,9 @@ export default {
       await copyTextToClipboard(this.plainTextContent);
       this.showAlert(this.$t('CONTACT_PANEL.COPY_SUCCESSFUL'));
       this.handleClose();
+    },
+    openSmartAction(){
+      alert('smart actions')
     },
     showCannedResponseModal() {
       this.$track(ACCOUNT_EVENTS.ADDED_TO_CANNED_RESPONSE);

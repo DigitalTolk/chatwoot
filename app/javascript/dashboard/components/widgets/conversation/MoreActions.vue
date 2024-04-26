@@ -1,6 +1,15 @@
 <template>
   <div class="flex actions--container relative items-center gap-2">
     <woot-button
+        v-if="enableSmartAction"
+        variant="hollow"
+        color-scheme="secondary"
+        icon="star-glitters"
+        @click="toggleSmartActions"
+      >
+      Smart Actions
+    </woot-button>
+    <woot-button
       v-if="!currentChat.muted"
       v-tooltip="$t('CONTACT_PANEL.MUTE_CONTACT')"
       variant="clear"
@@ -33,6 +42,9 @@
       :current-chat="currentChat"
       @cancel="toggleEmailActionsModal"
     />
+    <transition name="menu-slide">
+      <smart-actions :hide-smart-action="hideSmartAction" :show-smart-action="showSmartAction"></smart-actions>
+    </transition>
   </div>
 </template>
 <script>
@@ -41,6 +53,9 @@ import { mixin as clickaway } from 'vue-clickaway';
 import alertMixin from 'shared/mixins/alertMixin';
 import EmailTranscriptModal from './EmailTranscriptModal.vue';
 import ResolveAction from '../../buttons/ResolveAction.vue';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import SmartActions from './SmartActions.vue';
+
 import {
   CMD_MUTE_CONVERSATION,
   CMD_SEND_TRANSCRIPT,
@@ -51,15 +66,28 @@ export default {
   components: {
     EmailTranscriptModal,
     ResolveAction,
+    SmartActions,
   },
   mixins: [alertMixin, clickaway],
   data() {
     return {
       showEmailActionsModal: false,
+      showSmartAction: false,
     };
   },
   computed: {
-    ...mapGetters({ currentChat: 'getSelectedChat' }),
+    ...mapGetters({ 
+      isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
+      currentChat: 'getSelectedChat',
+      accountId: 'getCurrentAccountId',
+    }),
+    enableSmartAction() {
+      const isFeatEnabled = this.isFeatureEnabledonAccount(
+        this.accountId,
+        FEATURE_FLAGS.SMART_ACTIONS
+      );
+      return isFeatEnabled;
+    },
   },
   mounted() {
     bus.$on(CMD_MUTE_CONVERSATION, this.mute);
@@ -83,6 +111,14 @@ export default {
     toggleEmailActionsModal() {
       this.showEmailActionsModal = !this.showEmailActionsModal;
     },
+    toggleSmartActions(){
+      this.showSmartAction = !this.showSmartAction;
+    },
+    hideSmartAction(){
+      if (this.showSmartAction) {
+        this.showSmartAction = false;
+      }
+    }
   },
 };
 </script>

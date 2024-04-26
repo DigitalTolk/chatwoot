@@ -331,6 +331,7 @@ export default {
     },
     contextMenuEnabledOptions() {
       return {
+        smart_actions: this.enableSmartActions,
         copy: this.hasText,
         delete: this.hasText || this.hasAttachments,
         cannedResponse: this.isOutgoing && this.hasText,
@@ -411,6 +412,10 @@ export default {
         cc: this.contentAttributes.cc_emails,
         bcc: this.contentAttributes.bcc_emails,
       };
+    },
+    enableSmartActions(){
+      // todo: check for feature flag and inbox type (chat and email inboxes only)
+      return true;
     },
     hasAttachments() {
       return !!(this.data.attachments && this.data.attachments.length > 0);
