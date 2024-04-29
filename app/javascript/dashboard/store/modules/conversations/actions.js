@@ -487,6 +487,50 @@ const actions = {
     commit(types.ASSIGN_PRIORITY, { priority, conversationId });
   },
 
+  fetchSmartActions({ commit }, { conversationId, messageId } ) {
+    let sample_data = []
+    console.log(`conversation_id: ${conversationId}, message_id: ${messageId}`);
+    if (messageId) {
+      sample_data = [
+        {
+          index: 1,
+          name: 'Create Booking',
+          desc: 'User want to book translator with few requirements',
+          action: 'Create Booking',
+          from: 'booking form',
+          to: 'all options',
+          status: 'pending'
+        }
+      ]
+    } else {
+      sample_data = [
+        {
+          index: 1,
+          name: 'Create Booking',
+          desc: 'User want to book translator with few requirements',
+          action: 'Create Booking',
+          from: 'booking form',
+          to: 'all options',
+          status: 'pending'
+        },
+        {
+          index: 2,
+          name: 'Create Booking',
+          desc: 'User want to update the video meeting link of booking #77722',
+          action: 'Create Booking',
+          from: 'edit booking form',
+          to: 'Video meeting option',
+          status: 'Resolved'
+        }
+      ]
+    }
+    commit(types.SET_SMART_ACTIONS, sample_data)
+  },
+
+  showSmartActions({ commit }, value) {
+    commit(types.DISPLAY_SMART_ACTIONS, value)
+  },
+
   ...messageReadActions,
   ...messageTranslateActions,
 };

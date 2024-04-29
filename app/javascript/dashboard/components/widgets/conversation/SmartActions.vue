@@ -1,10 +1,10 @@
 <template>
   <div>
     <div 
-      v-if="showSmartAction"
+      v-if="showSmartActions"
       v-on-clickaway="hideSmartAction"
       class="smart-actions-panel left-3 rtl:left-auto rtl:right-3 bottom-16 w-64 absolute z-30 rounded-md shadow-xl bg-white dark:bg-slate-800 py-5 px-5 border border-slate-25 dark:border-slate-700"
-      :class="{ 'block visible': showSmartAction }"
+      :class="{ 'block visible': showSmartActions }"
       >
       <woot-button
         size="tiny"
@@ -20,7 +20,7 @@
       <p class="text-slate-400 dark:text-slate-300">Proceed with each action and let AI do the rest e.g auto fill form</p>
 
       <div>
-        <div v-for="action in actions" v-bind:key="action.index" class="smart-action-item bg-slate-25 dark:bg-slate-900 m-0 h-full min-h-0">
+        <div v-for="action in smartActions" v-bind:key="action.index" class="smart-action-item bg-slate-25 dark:bg-slate-900 m-0 h-full min-h-0">
           <h3 class="text-black-900 dark:text-slate-400">{{ action.name }}</h3>
           <p class="text-slate-400 dark:text-slate-300">{{ action.desc }}</p>
           <p class="text-slate-600 dark:text-slate-300 action-from-to">{{ action.from }} → {{ action.to }}</p>
@@ -77,46 +77,24 @@
 <script>
 import WootButton from '../../ui/WootButton.vue'
 import { mixin as clickaway } from 'vue-clickaway';
+import { mapGetters } from 'vuex';
 
 export default {
   components: { WootButton },
-  props: {
-    showSmartAction: {
-      type: Boolean,
-      default: false,
-    },
-    hideSmartAction: {
-      type: Function,
-      default: () => {},
-    }
-  },
   mixins: [clickaway],
   data() {
     return {
-      actions: [
-        {
-          index: 1,
-          name: 'Create Booking',
-          desc: 'User want to book translator with few requirements',
-          action: 'Create Booking',
-          from: 'booking form',
-          to: 'all options',
-          status: 'pending'
-        },
-        {
-          index: 2,
-          name: 'Create Booking',
-          desc: 'User want to update the video meeting link of booking #77722',
-          action: 'Create Booking',
-          from: 'edit booking form',
-          to: 'Video meeting option',
-          status: 'Resolved'
-        }
-      ],
       showBookingPanel: false,
       openHelp: false,
     }
   },
+  computed: {
+    ...mapGetters({
+      showSmartActions: 'showSmartActions',
+      smartActions: 'getSmartActions'
+    })
+  },
+  
   methods: {
     toggleBookingPanel() {
       this.showBookingPanel = !this.showBookingPane;
@@ -134,6 +112,11 @@ export default {
     },
     openSetting(){
       console.log('open settings')
+    },
+    hideSmartAction(){
+      if (!this.showBookingPanel) {
+        this.$store.dispatch('showSmartActions', false)
+      }
     }
   }
 }

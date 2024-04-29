@@ -1,7 +1,8 @@
 <template>
   <div class="flex actions--container relative items-center gap-2">
+    {{ showSmartActions }}
     <woot-button
-        v-if="enableSmartAction"
+        v-if="enableSmartActions"
         variant="hollow"
         color-scheme="secondary"
         icon="star-glitters"
@@ -43,7 +44,7 @@
       @cancel="toggleEmailActionsModal"
     />
     <transition name="menu-slide">
-      <smart-actions :hide-smart-action="hideSmartAction" :show-smart-action="showSmartAction"></smart-actions>
+      <smart-actions></smart-actions>
     </transition>
   </div>
 </template>
@@ -73,7 +74,6 @@ export default {
   data() {
     return {
       showEmailActionsModal: false,
-      showSmartAction: false,
     };
   },
   computed: {
@@ -81,8 +81,9 @@ export default {
       isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
       currentChat: 'getSelectedChat',
       accountId: 'getCurrentAccountId',
+      showSmartActions: 'showSmartActions',
     }),
-    enableSmartAction() {
+    enableSmartActions() {
       const isFeatEnabled = this.isFeatureEnabledonAccount(
         this.accountId,
         FEATURE_FLAGS.SMART_ACTIONS
@@ -116,13 +117,11 @@ export default {
       this.showEmailActionsModal = !this.showEmailActionsModal;
     },
     toggleSmartActions(){
-      this.showSmartAction = !this.showSmartAction;
+      const conversationId =  this.currentChat.id;
+      const messageId = null;
+      this.$store.dispatch('fetchSmartActions', { conversationId, messageId });
+      this.$store.dispatch('showSmartActions', true);
     },
-    hideSmartAction(){
-      if (this.showSmartAction) {
-        this.showSmartAction = false;
-      }
-    }
   },
 };
 </script>

@@ -284,6 +284,14 @@ export const mutations = {
   ) {
     _state.syncConversationsMessages[conversationId] = messageId;
   },
+
+  [types.SET_SMART_ACTIONS]( _state, data) {
+    Vue.set(_state, 'smartActions', data);
+  },
+
+  [types.DISPLAY_SMART_ACTIONS](_state, value) {
+    Vue.set(_state, 'showSmartActions', value);
+  },
 };
 
 export default {

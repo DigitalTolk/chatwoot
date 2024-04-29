@@ -202,7 +202,10 @@ export default {
       this.handleClose();
     },
     openSmartAction(){
-      alert('smart actions')
+      const conversationId = this.conversationId;
+      const messageId = this.messageId;
+      this.$store.dispatch('fetchSmartActions', { conversationId, messageId });
+      this.$store.dispatch('showSmartActions', true);
     },
     showCannedResponseModal() {
       this.$track(ACCOUNT_EVENTS.ADDED_TO_CANNED_RESPONSE);
