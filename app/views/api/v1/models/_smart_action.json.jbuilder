@@ -1,0 +1,10 @@
+json.id smart_action.id
+json.message_id smart_action.message_id
+json.conversation_id smart_action.conversation_id
+json.name smart_action.name
+json.label smart_action.label
+json.event smart_action.event
+json.intent_type smart_action.intent_type
+json.from smart_action.from
+json.to smart_action.to
+json.link smart_action.link

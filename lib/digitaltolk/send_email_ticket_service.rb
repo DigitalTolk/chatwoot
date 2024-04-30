@@ -67,7 +67,7 @@ class Digitaltolk::SendEmailTicketService
       if for_issue
         if booking_issue_id
           convos = conversations.where("custom_attributes ->> 'booking_id' = ?", booking_id)
-                  .where("custom_attributes ->> 'booking_issue_id' = ?", booking_issue_id)
+                                .where("custom_attributes ->> 'booking_issue_id' = ?", booking_issue_id)
           convos = filter_conversation_by_email(convos)
           @conversation = convos.last
         end
@@ -86,9 +86,7 @@ class Digitaltolk::SendEmailTicketService
   end
 
   def filter_conversation_by_email(convos)
-    if find_contact_by_email.present?
-      convos = convos.where(contact_id: find_contact_by_email.id)
-    end
+    convos = convos.where(contact_id: find_contact_by_email.id) if find_contact_by_email.present?
 
     convos
   end
