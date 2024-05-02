@@ -82,9 +82,20 @@ describe Digitaltolk::SendEmailTicketService do
 
         it do
           result = service.perform
-          expect(result[:message]).to eq("'solved' is not a valid status")
+          expect(result[:success]).to be_truthy
+          expect(result[:message]).to eq('Email sent!')
+          convo = inbox.conversations.find_by(display_id: result[:conversation_id])
+          expect(convo.status).to eq('open')
         end
       end
     end
+
+    # context 'with sender' do
+    #   it 'assigns creator as sender' do
+    #     result = service.perform
+    #     convo = inbox.conversations.find_by(display_id: result[:conversation_id])
+    #     expect(convo.messages.last.sender).to eq(creator)
+    #   end
+    # end
   end
 end

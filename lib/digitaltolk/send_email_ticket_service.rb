@@ -98,7 +98,7 @@ class Digitaltolk::SendEmailTicketService
   end
 
   def find_contact_by_email
-    @contact ||= @account.contacts.find_by(email: params_email)
+    @find_contact_by_email ||= @account.contacts.find_by(email: params_email)
   end
 
   def create_conversation
@@ -191,9 +191,14 @@ class Digitaltolk::SendEmailTicketService
 
   def update_status
     return if @errors.present?
+    return unless valid_status?
 
     @conversation.status = params[:status]
     @conversation.snoozed_until = parse_date_time(params[:snoozed_until].to_s) if params[:snoozed_until]
     @conversation.save
+  end
+
+  def valid_status?
+    [:open, :resolved, :pending, :snoozed].include?(params[:status].to_s.to_sym)
   end
 end
