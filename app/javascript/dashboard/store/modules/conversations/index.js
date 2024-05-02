@@ -20,7 +20,6 @@ const state = {
   syncConversationsMessages: {},
   showSmartActions: false,
   smartActions: [],
-  total_csat_questions: 0,
 };
 
 // mutations

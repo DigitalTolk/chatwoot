@@ -14,23 +14,32 @@
         @click="hideSmartAction"
         class="float-right"
       />
-      <h1 class="text-xl break-words overflow-hidden whitespace-nowrap font-medium text-ellipsis text-black-900 dark:text-slate-100 mb-0">
-        2 smart actions detected from conversation
-      </h1>
-      <p class="text-slate-400 dark:text-slate-300">Proceed with each action and let AI do the rest e.g auto fill form</p>
-
-      <div>
+      <div v-if="smartActions.length" class="mt-8">
+        <h1 class="text-xl break-words overflow-hidden whitespace-nowrap font-medium text-ellipsis text-black-900 dark:text-slate-100 mb-0">
+          {{ smartActions.length }} smart actions detected from conversation
+        </h1>
+        <p class="text-slate-400 dark:text-slate-300">Proceed with each action and let AI do the rest e.g auto fill form</p>
+      </div>
+      <div v-else>
+        <p class="text-slate-400 dark:text-slate-300">No smart actions found.</p>
+      </div>
+      <div class="mt-3">
         <div v-for="action in smartActions" v-bind:key="action.index" class="smart-action-item bg-slate-25 dark:bg-slate-900 m-0 h-full min-h-0">
-          <h3 class="text-black-900 dark:text-slate-400">{{ action.name }}</h3>
-          <p class="text-slate-400 dark:text-slate-300">{{ action.desc }}</p>
-          <p class="text-slate-600 dark:text-slate-300 action-from-to">{{ action.from }} → {{ action.to }}</p>
+          <div class="capitalize float-right rounded-full bg-green-100 text-xs px-3 py-2 dark:text-slate-300 text-slate-700">{{ action.intent_type }}</div>
+          <h1 class="text-black-900 dark:text-slate-400 text-2xl font-medum mb-2">{{ action.name }}</h1>
+          <p class="text-slate-400 dark:text-slate-300 mb-3">{{ action.description }}</p>
+          <div class="text-slate-800 dark:text-slate-300 action-from-to mb-3">
+            <span class="mr-2">{{ action.from }}</span>
+            <span class="mr-2"> → </span>
+            <span class="mr-2">{{ action.to }}</span>
+          </div>
           <div>
             <woot-button
                 size="tiny"
                 class="smart-action-button"
                 @click="toggleBookingPanel"
               >
-              {{ action.action }}
+              {{ action.label }}
               <fluent-icon 
                 size="16"
                 class="-mt-0.5 align-middle text-slate-600 dark:text-slate-300 inline-block"
@@ -41,10 +50,9 @@
           </div>
         </div>
       </div>
-      <div>
-      <div>
+      <div class="absolute bottom-0 w-11/12">
         <woot-button
-          size="small"
+          size="medium"
           variant="clear"
           color-scheme="secondary"
           icon="settings"
@@ -54,8 +62,7 @@
         <div class="flex smart-help-chevron text-slate-400 dark:text-slate-300 text-xs py-2" @click="toggleHelp">
           <fluent-icon v-if="openHelp" size="10" icon="chevron-down" class="mt-1 mr-2"/>
           <fluent-icon v-else size="10" icon="chevron-right" type="solid" class="mt-1 mr-2"/>
-            Learn what is mart action and how it works
-          </div>
+          Learn what is mart action and how it works
         </div>
         <p class="text-sm text-slate-800 dark:text-slate-300" v-if="openHelp">
           Smart action is an AI-powered feature designed to assist support agents in real-time conversation
@@ -63,7 +70,6 @@
           empowering them to provide faster, more accurate assistance to customers.
         </p>
       </div>
-
     </div>
     <div v-if="showBookingPanel"
       v-on-clickaway="hideBookingPanel"
@@ -128,18 +134,17 @@ export default {
     bottom: 0;
     z-index: 99;
     left: 20px;
-    width: 600px;
+    width: 96%;
+    max-width: 600px;
     color: white;
-    height: 500px;
+    height: 600px;
     border-radius: 5px;
   }
   .smart-action-item{
-    // background: #F8F9FB;
-    padding: 10px;
+    padding: 15px;
     border-radius: 5px;
     margin-bottom: 10px;
-    // border: 1px solid #F1F2F4;
-
+    border: 1px solid #f1f2f4;
   }
   .action-from-to{
     font-size: var(--font-size-mini);
@@ -158,7 +163,8 @@ export default {
     bottom: 0;
     left: 0;
     z-index: 100;
-    width: 40vw;
+    width: 100%;
+    max-width: 700px;
     height: 100vh;
   }
   #booking-iframe{

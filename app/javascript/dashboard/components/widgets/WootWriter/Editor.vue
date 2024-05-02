@@ -184,8 +184,6 @@ export default {
       sizes: MESSAGE_EDITOR_IMAGE_RESIZES,
       selectedImageNode: null,
       loadingSmartResponse: false,
-      coPilotAnswer: '',
-      typingIndex: 0,
     };
   },
   computed: {
@@ -726,9 +724,7 @@ export default {
       });
     },
     askCoPilot(){
-      this.typingIndex = 0;
-      this.coPilotAnswer = 'Hello Johanna \n\nThanks for reaching out. Missing mandatory info for booking. Please specify booking duration and interpretation method: phone, video, or on-site? [test](link) okay!'
-      this.$emit('replace-text-animate', this.coPilotAnswer);
+      this.$emit('ask-copilot');
     },
     checkCoPilot(){
       if (this.value[0] == ' ') {
@@ -737,6 +733,9 @@ export default {
       } else {
         this.loadingSmartResponse = false;
       }
+    },
+    showLoadingSmartResponseIcon() {
+      return this.loadingSmartResponse && this.showCoPilot;
     }
   },
 };

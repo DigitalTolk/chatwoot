@@ -204,7 +204,7 @@ export default {
     openSmartAction(){
       const conversationId = this.conversationId;
       const messageId = this.messageId;
-      this.$store.dispatch('fetchSmartActions', { conversationId, messageId });
+      this.$store.dispatch('getSmartActions', { conversationId, messageId });
       this.$store.dispatch('showSmartActions', true);
     },
     showCannedResponseModal() {

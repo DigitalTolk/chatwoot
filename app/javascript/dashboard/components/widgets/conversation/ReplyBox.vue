@@ -95,7 +95,7 @@
         @toggle-canned-menu="toggleCannedMenu"
         @toggle-variables-menu="toggleVariablesMenu"
         @clear-selection="clearEditorSelection"
-        @replace-text-animate="onReplaceTextAnimate"
+        @ask-copilot="onAskCopilot"
       />
     </div>
     <div v-if="hasAttachments" class="attachment-preview-box" @paste="onPaste">
@@ -919,20 +919,23 @@ export default {
         this.message = updatedMessage;
       }, 100);
     },
-    onReplaceTextAnimate(msg) {
-      if (!msg) {
+    onAskCopilot() {
+       // todo: post request
+      const coPilotAnswer = 'Hello Johanna \n\nThanks for reaching out. Missing mandatory info for booking. Please specify booking duration and interpretation method: phone, video, or on-site? [test](link) okay!';
+
+      if (!coPilotAnswer) {
         return;
       }
 
       let i = 0;
       const interval = setInterval(() => {
-        if (i <= msg.length) {
-          this.message = msg.substring(0, i)
+        if (i <= coPilotAnswer.length) {
+          this.message = coPilotAnswer.substring(0, i)
           i++;
         } else {
           clearInterval(interval)
         }
-      }, 15)
+      }, 10)
     },
     setReplyMode(mode = REPLY_EDITOR_MODES.REPLY) {
       const { can_reply: canReply } = this.currentChat;

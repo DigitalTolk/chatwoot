@@ -1,6 +1,5 @@
 <template>
   <div class="flex actions--container relative items-center gap-2">
-    {{ showSmartActions }}
     <woot-button
         v-if="enableSmartActions"
         variant="hollow"
@@ -43,7 +42,7 @@
       :current-chat="currentChat"
       @cancel="toggleEmailActionsModal"
     />
-    <transition name="menu-slide">
+    <transition name="slide" :duration="{ enter: 1000, leave: 1000, delay: 3000 }">
       <smart-actions></smart-actions>
     </transition>
   </div>
@@ -119,7 +118,7 @@ export default {
     toggleSmartActions(){
       const conversationId =  this.currentChat.id;
       const messageId = null;
-      this.$store.dispatch('fetchSmartActions', { conversationId, messageId });
+      this.$store.dispatch('getSmartActions', { conversationId, messageId });
       this.$store.dispatch('showSmartActions', true);
     },
   },
