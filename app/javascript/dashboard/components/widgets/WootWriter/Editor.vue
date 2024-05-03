@@ -1,5 +1,5 @@
 <template>
-  <div ref="editorRoot" class="relative editor-root" :class="{ 'copilot-enabled': showCoPilot }">
+  <div ref="editorRoot" class="relative editor-root" :class="{ 'copilot-enabled': showCopilot }">
     <tag-agents
       v-if="showUserMentions && isPrivate"
       :search-key="mentionSearchKey"
@@ -15,23 +15,10 @@
       :search-key="variableSearchTerm"
       @click="insertVariable"
     />
-    <div class="copilot">
-      <woot-button
-        v-if="showCoPilot"
-        color-scheme="primary"
-        icon="star-glitters"
-        size="tiny"
-        @click="askCoPilot"
-      >
-        Ask Copilot
-      </woot-button>
-      <fluent-icon
-        v-if="loadingSmartResponse"
-        icon="star-glitters"
-        class="ml-2 mt-1"
-        size="12"
-      />
-    </div>
+    <copilot 
+      :show-loading-smart-response-icon="loadingSmartResponse"
+      :show-copilot="showCopilot"
+      @ask-copilot="askCopilot"/>
     <input
       ref="imageUpload"
       type="file"
@@ -79,6 +66,7 @@ import { BUS_EVENTS } from 'shared/constants/busEvents';
 
 import TagAgents from '../conversation/TagAgents.vue';
 import CannedResponse from '../conversation/CannedResponse.vue';
+import Copilot from '../conversation/Copilot.vue'
 import VariableList from '../conversation/VariableList.vue';
 import {
   appendSignature,
@@ -113,6 +101,7 @@ import {
   MESSAGE_EDITOR_MENU_OPTIONS,
   MESSAGE_EDITOR_IMAGE_RESIZES,
 } from 'dashboard/constants/editor';
+import CopilotVue from '../conversation/Copilot.vue';
 
 const createState = (
   content,
@@ -137,7 +126,7 @@ const createState = (
 
 export default {
   name: 'WootMessageEditor',
-  components: { TagAgents, CannedResponse, VariableList },
+  components: { TagAgents, CannedResponse, VariableList, Copilot },
   mixins: [eventListenerMixins, uiSettingsMixin, alertMixin],
   props: {
     value: { type: String, default: '' },
@@ -304,7 +293,7 @@ export default {
 
       return false;
     },
-    showCoPilot() {
+    showCopilot() {
       return this.enableSmartActions && !this.isPrivate;
     },
   },
@@ -723,20 +712,17 @@ export default {
         scrollCursorIntoView(this.editorView);
       });
     },
-    askCoPilot(){
+    askCopilot(){
       this.$emit('ask-copilot');
     },
     checkCoPilot(){
       if (this.value[0] == ' ') {
         this.loadingSmartResponse = true;
-        this.askCoPilot()
+        this.askCopilot()
       } else {
         this.loadingSmartResponse = false;
       }
     },
-    showLoadingSmartResponseIcon() {
-      return this.loadingSmartResponse && this.showCoPilot;
-    }
   },
 };
 </script>
