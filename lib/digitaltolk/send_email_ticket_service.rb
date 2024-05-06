@@ -95,11 +95,11 @@ class Digitaltolk::SendEmailTicketService
   end
 
   def params_email
-    params.dig(:requester, :email).to_s.downcase.strip
+    params.dig(:requester, :email).to_s
   end
 
   def find_contact_by_email
-    @find_contact_by_email ||= @account.contacts.from_email(email: params_email)
+    @find_contact_by_email ||= @account.contacts.from_email(params_email)
   end
 
   def create_conversation
@@ -199,7 +199,7 @@ class Digitaltolk::SendEmailTicketService
   end
 
   def created_by_email
-    params.dig(:created_by, :email).to_s.downcase.strip
+    params.dig(:created_by, :email).to_s
   end
 
   def sender

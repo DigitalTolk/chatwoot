@@ -22,8 +22,8 @@ RSpec.describe SmartActionBuilder, type: :model do
   describe '#perform' do
     it 'creates a new smart action' do
       smart_action_builder.perform
-      expect { smart_action_builder.perform }.to change(SmartAction, :count).by(1)
       expect(smart_action_builder.errors).to eq([])
+      expect { smart_action_builder.perform }.to change(SmartAction, :count).by(1)
     end
   end
 end
