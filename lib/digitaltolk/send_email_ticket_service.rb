@@ -1,4 +1,5 @@
 class Digitaltolk::SendEmailTicketService
+  include DateRangeHelper
   attr_accessor :account, :user, :params, :errors, :conversation, :for_issue
 
   CUSTOMER_TYPE = 2
@@ -19,6 +20,7 @@ class Digitaltolk::SendEmailTicketService
         find_or_create_conversation
         validate_data
         create_message
+        update_status
       end
     rescue StandardError => e
       Rails.logger.error e
@@ -56,7 +58,8 @@ class Digitaltolk::SendEmailTicketService
       inbox_id: params[:inbox_id],
       email: params_email,
       assignee_id: nil,
-      account_id: @account.id
+      account_id: @account.id,
+      team_id: params[:team_id]
     }
   end
 
@@ -96,7 +99,7 @@ class Digitaltolk::SendEmailTicketService
   end
 
   def find_contact_by_email
-    @contact ||= @account.contacts.find_by(email: params_email)
+    @find_contact_by_email ||= @account.contacts.find_by(email: params_email)
   end
 
   def create_conversation
@@ -171,6 +174,32 @@ class Digitaltolk::SendEmailTicketService
   def create_message
     return if @errors.present?
 
-    @message = Digitaltolk::AddMessageService.new(@user, @conversation, @params[:body]).perform
+    @message = Digitaltolk::AddMessageService.new(sender, @conversation, @params[:body]).perform
+  end
+
+  def find_user_by_email
+    User.find_by(email: created_by_email)
+  end
+
+  def created_by_email
+    params.dig(:created_by, :email).to_s.downcase.strip
+  end
+
+  def sender
+    # find_user_by_email || @user
+    @user
+  end
+
+  def update_status
+    return if @errors.present?
+    return unless valid_status?
+
+    @conversation.status = params[:status]
+    @conversation.snoozed_until = parse_date_time(params[:snoozed_until].to_s) if params[:snoozed_until]
+    @conversation.save
+  end
+
+  def valid_status?
+    [:open, :resolved, :pending, :snoozed].include?(params[:status].to_s.to_sym)
   end
 end
