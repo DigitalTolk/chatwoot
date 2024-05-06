@@ -12,7 +12,7 @@ class SmartActionBuilder
     return if @errors.present?
 
     build_smart_action
-  rescue Exception => e
+  rescue StandardError => e
     @errors << e.message
     nil
   end
@@ -20,19 +20,19 @@ class SmartActionBuilder
   private
 
   def validate_params
-    unless @params.present?
-      @errors << 'Missing parameters'
-    end
+    return if @params.present?
+
+    @errors << 'Missing parameters'
   end
-  
+
   def build_smart_action
     @smart_action = @conversation.smart_actions.create(smart_action_params)
   end
 
   def smart_action_params
-    @params.require(:smart_action).permit(
-      :name, 
-      :label, 
+    @params.permit(
+      :name,
+      :label,
       :description,
       :event,
       :intent_type,
@@ -43,4 +43,3 @@ class SmartActionBuilder
     )
   end
 end
-  

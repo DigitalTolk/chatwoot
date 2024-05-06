@@ -7,7 +7,7 @@ class Api::V1::Accounts::Conversations::SmartActionsController < Api::V1::Accoun
     builder = SmartActionBuilder.new(@conversation, params)
     @smart_action = builder.perform
 
-    render json: { 
+    render json: {
       success: @smart_action.present?,
       message: builder.errors.present? ? builder.errors.join(', ') : 'Successfully created'
     }

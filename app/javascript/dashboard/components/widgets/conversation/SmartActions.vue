@@ -23,7 +23,7 @@
       <div v-else>
         <p class="text-slate-400 dark:text-slate-300">No smart actions found.</p>
       </div>
-      <div class="mt-3">
+      <div class="mt-3 action-holder">
         <div v-for="action in smartActions" v-bind:key="action.index" class="smart-action-item bg-slate-25 dark:bg-slate-900 m-0 h-full min-h-0">
           <div class="capitalize float-right rounded-full bg-green-100 text-xs px-3 py-2 dark:text-slate-300 text-slate-700">{{ action.intent_type }}</div>
           <h1 class="text-black-900 dark:text-slate-400 text-2xl font-medum mb-2">{{ action.name }}</h1>
@@ -140,6 +140,10 @@ export default {
     color: white;
     height: 600px;
     border-radius: 5px;
+  }
+  .action-holder{
+    max-height: 350px;
+    overflow-y: auto;
   }
   .smart-action-item{
     padding: 15px;
