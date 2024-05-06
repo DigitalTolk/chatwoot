@@ -5,6 +5,7 @@ class Api::V1::Accounts::Conversations::SmartActionsController < Api::V1::Accoun
 
   def create
     @smart_action = SmartActionBuilder.new(@conversation, params).perform
-    head :ok
+
+    render json: { success: @smart_action.present? }
   end
 end

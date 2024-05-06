@@ -4,26 +4,36 @@ class SmartActionBuilder
   def initialize(conversation, params)
     @conversation = conversation
     @params = params
+    @errors = []
   end
 
   def perform
+    validate_params
+    return if @errors.present?
+
     build_smart_action
-  end
+  rescue Exception => e
+    nil
+end
 
   private
 
-  def build_smart_action
-    return if smart_action_params.blank?
+  def error_data
+    { success: false, message: @errors.join(', ') }
+  end
 
-    @smart_action = @conversation.smart_actions.create(custom_attributes_params)
+  def validate_params
+    unless @params.present?
+      @errors << 'Missing parameters'
+    end
+  end
+  
+  def build_smart_action
+    @smart_action = @conversation.smart_actions.create(smart_action_params)
   end
 
   def smart_action_params
-    @params [:smart_action]
-  end
-
-  def custom_attributes_params
-    @params .require(:smart_action).permit(
+    @params.require(:smart_action).permit(
       :name, 
       :label, 
       :description,
