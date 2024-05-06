@@ -107,7 +107,8 @@ export default {
 
       setTimeout(function(){
         const iframe = document.getElementById('booking-iframe');
-        iframe.src = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d8002838.949212151!2d117.32494097817411!3d11.649251523926925!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x324053215f87de63%3A0x784790ef7a29da57!2sPhilippines!5e0!3m2!1sen!2sph!4v1714138547965!5m2!1sen!2sph";
+        // TODO: url from smart action
+        iframe.src = 'https://www.digitaltolk.se/bokning';
       }, 500)
     },
     hideBookingPanel(){

@@ -13,14 +13,11 @@ class SmartActionBuilder
 
     build_smart_action
   rescue Exception => e
+    @errors << e.message
     nil
-end
+  end
 
   private
-
-  def error_data
-    { success: false, message: @errors.join(', ') }
-  end
 
   def validate_params
     unless @params.present?
