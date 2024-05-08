@@ -325,6 +325,7 @@ export default {
       }
       this.fetchAllAttachmentsFromCurrentChat();
       this.fetchSuggestions();
+      this.fetchSmartActions();
       this.messageSentSinceOpened = false;
     },
   },
@@ -344,6 +345,7 @@ export default {
     this.addScrollListener();
     this.fetchAllAttachmentsFromCurrentChat();
     this.fetchSuggestions();
+    this.fetchSmartActions();
   },
 
   beforeDestroy() {
@@ -352,6 +354,11 @@ export default {
   },
 
   methods: {
+    async fetchSmartActions() {
+      const conversationId = this.currentChat.id;
+      this.$store.dispatch('getSmartActions', conversationId)
+    },
+
     async fetchSuggestions() {
       // start empty, this ensures that the label suggestions are not shown
       this.labelSuggestions = [];

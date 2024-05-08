@@ -337,7 +337,6 @@ export default {
     },
     contextMenuEnabledOptions() {
       return {
-        smart_actions: this.enableSmartActions,
         copy: this.hasText,
         delete: this.hasText || this.hasAttachments,
         cannedResponse: this.isOutgoing && this.hasText,
@@ -418,13 +417,6 @@ export default {
         cc: this.contentAttributes.cc_emails,
         bcc: this.contentAttributes.bcc_emails,
       };
-    },
-    enableSmartActions(){
-      const isFeatEnabled = this.isFeatureEnabledGlobally(
-        this.accountId,
-        FEATURE_FLAGS.SMART_ACTIONS
-      );
-      return isFeatEnabled && this.isIncoming && (this.isAnEmailInbox || this.isWebWidgetInbox);
     },
     hasAttachments() {
       return !!(this.data.attachments && this.data.attachments.length > 0);

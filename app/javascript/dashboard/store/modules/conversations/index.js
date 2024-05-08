@@ -20,6 +20,7 @@ const state = {
   syncConversationsMessages: {},
   showSmartActions: false,
   smartActions: [],
+  smartActionsContext: {},
 };
 
 // mutations

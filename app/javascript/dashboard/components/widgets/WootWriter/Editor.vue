@@ -716,7 +716,12 @@ export default {
       this.$emit('ask-copilot');
     },
     checkCoPilot(){
-      if (this.value[0] == ' ') {
+      if (!this.enableSmartActions) {
+        this.loadingSmartResponse = false;
+        return;
+      }
+
+      if (this.value == ' ') {
         this.loadingSmartResponse = true;
         this.askCopilot()
       } else {
