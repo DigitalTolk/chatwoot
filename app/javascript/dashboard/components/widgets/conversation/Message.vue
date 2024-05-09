@@ -337,11 +337,19 @@ export default {
     },
     contextMenuEnabledOptions() {
       return {
+        smart_actions: this.enableSmartActions,
         copy: this.hasText,
         delete: this.hasText || this.hasAttachments,
         cannedResponse: this.isOutgoing && this.hasText,
         replyTo: !this.data.private && this.inboxSupportsReplyTo.outgoing,
       };
+    },
+    enableSmartActions(){
+      const isFeatEnabled = this.isFeatureEnabledGlobally(
+        this.accountId,
+        FEATURE_FLAGS.SMART_ACTIONS
+      );
+      return isFeatEnabled && this.isIncoming && (this.isAnEmailInbox || this.isWebWidgetInbox);
     },
     contentAttributes() {
       return this.data.content_attributes || {};

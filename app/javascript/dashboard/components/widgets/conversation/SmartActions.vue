@@ -37,7 +37,7 @@
             <woot-button
                 size="tiny"
                 class="smart-action-button"
-                @click="toggleBookingPanel"
+                @click="toggleBookingPanel(action)"
               >
               {{ action.label }}
               <fluent-icon 
@@ -97,21 +97,24 @@ export default {
   computed: {
     ...mapGetters({
       showSmartActions: 'showSmartActions',
-      smartActions: 'getSmartActions'
+      smartActions: 'getSmartActions',
+      context: 'getSmartActionsContext',
     }),
     filteredSmartActions() {
-      return this.smartActions.filter(action => action.event != 'ask_copilot')
+      return this.smartActions.filter((action) => {
+        const scoped = this.context.messageId == null || this.context.messageId == action.message_id;
+        return action.event != 'ask_copilot' && scoped
+      })
     },
   },
   
   methods: {
-    toggleBookingPanel() {
+    toggleBookingPanel(action) {
       this.showBookingPanel = !this.showBookingPane;
 
       setTimeout(function(){
         const iframe = document.getElementById('booking-iframe');
-        // TODO: url from smart action
-        iframe.src = 'https://www.digitaltolk.se/bokning';
+        iframe.src = action.link || 'https://www.digitaltolk.se/bokning';
       }, 500)
     },
     hideBookingPanel(){

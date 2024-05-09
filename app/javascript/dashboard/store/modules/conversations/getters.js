@@ -116,6 +116,9 @@ const getters = {
     } else {
       return null;
     }
+  },
+  getSmartActionsContext: _state => {
+    return _state.smartActionsContext;
   }
 };
 

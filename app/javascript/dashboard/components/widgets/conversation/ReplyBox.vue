@@ -87,6 +87,7 @@
         :allow-signature="true"
         :channel-type="channelType"
         :enable-smart-actions="enableSmartActions"
+        :enable-copilot="enableCopilot"
         @typing-off="onTypingOff"
         @typing-on="onTypingOn"
         @focus="onFocus"
@@ -353,12 +354,12 @@ export default {
     },
     messagePlaceHolder() {
       if (this.isPrivate) {
-        return this.$t('CONVERSATION.FOOTER.PRIVATE_MSG_INPUT')
+        $t('CONVERSATION.FOOTER.PRIVATE_MSG_INPUT')
       }
 
-      return this.enableSmartActions
-        ? this.$t('CONVERSATION.FOOTER.SMART_AI_INPUT')
-        : this.$t('CONVERSATION.FOOTER.MSG_INPUT');
+      return this.enableCopilot
+      ? this.$t('CONVERSATION.FOOTER.SMART_AI_INPUT')
+      : this.$t('CONVERSATION.FOOTER.MSG_INPUT');
     },
     isMessageLengthReachingThreshold() {
       return this.message.length > this.maxLength - 50;
@@ -490,7 +491,10 @@ export default {
         this.accountId,
         FEATURE_FLAGS.SMART_ACTIONS
       );
-      return this.copilotResponse != null && isFeatEnabled && (this.isAnEmailChannel || this.isAWebWidgetInbox);
+      return isFeatEnabled && (this.isAnEmailChannel || this.isAWebWidgetInbox);
+    },
+    enableCopilot() {
+      return this.copilotResponse != null;
     },
     isSignatureEnabledForInbox() {
       return !this.isPrivate && this.sendWithSignature;
