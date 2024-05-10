@@ -132,6 +132,7 @@ import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { REPLY_POLICY } from 'shared/constants/links';
 import wootConstants from 'dashboard/constants/globals';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 export default {
   components: {
@@ -181,6 +182,7 @@ export default {
       loadingChatList: 'getChatListLoadingStatus',
       appIntegrations: 'integrations/getAppIntegrations',
       isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
+      isFeatureEnabledGlobally: 'accounts/isFeatureEnabledGlobally',
       currentAccountId: 'getCurrentAccountId',
     }),
     isOpen() {
@@ -355,8 +357,18 @@ export default {
 
   methods: {
     async fetchSmartActions() {
-      const conversationId = this.currentChat.id;
-      this.$store.dispatch('getSmartActions', conversationId)
+      if (this.enabledSmartActions()) {
+        const conversationId = this.currentChat.id;
+        this.$store.dispatch('getSmartActions', conversationId)
+      }
+    },
+
+    enabledSmartActions(){
+      const isFeatEnabled = this.isFeatureEnabledGlobally(
+        this.accountId,
+        FEATURE_FLAGS.SMART_ACTIONS
+      );
+      return isFeatEnabled;
     },
 
     async fetchSuggestions() {
