@@ -2,6 +2,7 @@ import Vue from 'vue';
 import types from '../../mutation-types';
 import ConversationApi from '../../../api/inbox/conversation';
 import MessageApi from '../../../api/inbox/message';
+import SmartActionApi from '../../../api/inbox/smart_action';
 import { MESSAGE_STATUS, MESSAGE_TYPE } from 'shared/constants/messages';
 import { createPendingMessage } from 'dashboard/helper/commons';
 import {
@@ -250,14 +251,11 @@ const actions = {
     }
   },
 
-  closeConversation: async (
-    _,
-    { conversationId, closed }
-  ) => {
+  closeConversation: async (_, { conversationId, closed }) => {
     await ConversationApi.close({
       conversationId,
-      closed
-    })
+      closed,
+    });
   },
 
   createPendingMessageAndSend: async ({ dispatch }, data) => {
@@ -472,13 +470,13 @@ const actions = {
     }
   },
 
-  changeContact: async ({ _ }, { conversationId, email }) => {
+  changeContact: async (_, { conversationId, email }) => {
     try {
       return await ConversationApi.changeContact({
         conversationId,
         email,
       });
-    } catch (error ) {
+    } catch (error) {
       throw new Error(error);
     }
   },
@@ -487,6 +485,25 @@ const actions = {
     commit(types.ASSIGN_PRIORITY, { priority, conversationId });
   },
 
+  // TODO: move to smart action module
+  getSmartActions: async ({ commit }, conversationId) => {
+    const {
+      data: { payload },
+    } = await SmartActionApi.getSmartActions(conversationId);
+    commit(types.SET_SMART_ACTIONS, payload);
+  },
+
+  showSmartActions: ({ commit }, value) => {
+    commit(types.DISPLAY_SMART_ACTIONS, value);
+  },
+
+  setSmartActionsContext: ({ commit }, { conversationId, messageId }) => {
+    commit(types.SET_SMART_ACTIONS_CONTEXT, { conversationId, messageId });
+  },
+
+  askCopilot: async (_, { conversationId }) => {
+    return SmartActionApi.askCopilot(conversationId);
+  },
   ...messageReadActions,
   ...messageTranslateActions,
 };

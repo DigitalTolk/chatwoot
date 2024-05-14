@@ -1,4 +1,5 @@
 import { MESSAGE_TYPE } from 'shared/constants/messages';
+import { SMART_ACTION_EVENTS } from 'shared/constants/smartActionEvents';
 import { applyPageFilters, sortComparator } from './helpers';
 
 export const getSelectedChatConversation = ({
@@ -99,6 +100,26 @@ const getters = {
   },
   getConversationLastSeen: _state => {
     return _state.conversationLastSeen;
+  },
+  showSmartActions: _state => {
+    return _state.showSmartActions;
+  },
+  getSmartActions: _state => {
+    return _state.smartActions;
+  },
+
+  getCopilotResponse: _state => {
+    const responses = _state.smartActions.filter(
+      action => action.event === SMART_ACTION_EVENTS.ASK_COPILOT
+    );
+
+    if (responses.length) {
+      return responses.sort((a, b) => a.id - b.id)[responses.length - 1];
+    }
+    return null;
+  },
+  getSmartActionsContext: _state => {
+    return _state.smartActionsContext;
   },
 };
 

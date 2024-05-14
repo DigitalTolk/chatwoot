@@ -86,6 +86,8 @@
         :signature="signatureToApply"
         :allow-signature="true"
         :channel-type="channelType"
+        :enable-smart-actions="enableSmartActions"
+        :enable-copilot="enableCopilot"
         @typing-off="onTypingOff"
         @typing-on="onTypingOn"
         @focus="onFocus"
@@ -94,6 +96,7 @@
         @toggle-canned-menu="toggleCannedMenu"
         @toggle-variables-menu="toggleVariablesMenu"
         @clear-selection="clearEditorSelection"
+        @ask-copilot="onAskCopilot"
       />
     </div>
     <div v-if="hasAttachments" class="attachment-preview-box" @paste="onPaste">
@@ -197,6 +200,7 @@ import {
 
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { LocalStorage } from 'shared/helpers/localStorage';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 const EmojiInput = () => import('shared/components/emoji/EmojiInput');
 
@@ -272,7 +276,9 @@ export default {
       lastEmail: 'getLastEmailInSelectedChat',
       globalConfig: 'globalConfig/get',
       accountId: 'getCurrentAccountId',
-      isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
+      isFeatureEnabledGlobally: 'accounts/isFeatureEnabledGlobally',
+      smartActions: 'getSmartActions',
+      copilotResponse: 'getCopilotResponse',
     }),
     currentContact() {
       return this.$store.getters['contacts/getContact'](
@@ -347,8 +353,12 @@ export default {
       return this.$store.getters['inboxes/getInbox'](this.inboxId);
     },
     messagePlaceHolder() {
-      return this.isPrivate
-        ? this.$t('CONVERSATION.FOOTER.PRIVATE_MSG_INPUT')
+      if (this.isPrivate) {
+        return this.$t('CONVERSATION.FOOTER.PRIVATE_MSG_INPUT');
+      }
+
+      return this.enableCopilot
+        ? this.$t('CONVERSATION.FOOTER.SMART_AI_INPUT')
         : this.$t('CONVERSATION.FOOTER.MSG_INPUT');
     },
     isMessageLengthReachingThreshold() {
@@ -475,6 +485,16 @@ export default {
         this.isAPIInbox ||
         this.isAWhatsAppChannel
       );
+    },
+    enableSmartActions() {
+      const isFeatEnabled = this.isFeatureEnabledGlobally(
+        this.accountId,
+        FEATURE_FLAGS.SMART_ACTIONS
+      );
+      return isFeatEnabled && (this.isAnEmailChannel || this.isAWebWidgetInbox);
+    },
+    enableCopilot() {
+      return this.copilotResponse != null;
     },
     isSignatureEnabledForInbox() {
       return !this.isPrivate && this.sendWithSignature;
@@ -667,13 +687,16 @@ export default {
     saveDraft(conversationId, replyType) {
       if (this.message || this.message === '') {
         const key = `draft-${conversationId}-${replyType}`;
-        const draftToSave = removeSignature(trimContent(this.message || ''), this.signatureToApply);
+        const draftToSave = removeSignature(
+          trimContent(this.message || ''),
+          this.signatureToApply
+        );
 
         if (this.previousDraftMessage === draftToSave) {
           return;
         }
 
-        clearTimeout(this.draftUpdateDelayer)
+        clearTimeout(this.draftUpdateDelayer);
 
         this.draftUpdateDelayer = setTimeout(() => {
           this.previousDraftMessage = draftToSave;
@@ -682,7 +705,7 @@ export default {
             conversationId,
             message: draftToSave,
           });
-        }, 1000)
+        }, 1000);
       }
     },
     setToDraft(conversationId, replyType) {
@@ -905,6 +928,31 @@ export default {
         this.$track(CONVERSATION_EVENTS.INSERTED_A_CANNED_RESPONSE);
         this.message = updatedMessage;
       }, 100);
+    },
+    async onAskCopilot() {
+      const conversationId = this.conversationId;
+      const response = await this.$store.dispatch('askCopilot', {
+        conversationId,
+      });
+
+      if (
+        !response.data &&
+        !response.data.content &&
+        !response.data.content.length
+      ) {
+        return;
+      }
+      const answer = response.data.content;
+
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i <= answer.length) {
+          this.message = answer.substring(0, i);
+          i += 1;
+        } else {
+          clearInterval(interval);
+        }
+      }, 10);
     },
     setReplyMode(mode = REPLY_EDITOR_MODES.REPLY) {
       const { can_reply: canReply } = this.currentChat;

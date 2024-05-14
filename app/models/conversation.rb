@@ -77,6 +77,7 @@ class Conversation < ApplicationRecord
   scope :unassigned, -> { where(assignee_id: nil) }
   scope :assigned, -> { where.not(assignee_id: nil) }
   scope :assigned_to, ->(agent) { where(assignee_id: agent.id) }
+  scope :attended, -> { where.not(first_reply_created_at: nil) }
   scope :unattended, -> { where(first_reply_created_at: nil).or(where.not(waiting_since: nil)) }
   scope :resolvable, lambda { |auto_resolve_duration|
     return none if auto_resolve_duration.to_i.zero?
@@ -121,6 +122,7 @@ class Conversation < ApplicationRecord
   has_many :conversation_participants, dependent: :destroy_async
   has_many :notifications, as: :primary_actor, dependent: :destroy_async
   has_many :attachments, through: :messages
+  has_many :smart_actions, dependent: :destroy_async
 
   before_save :ensure_snooze_until_reset
   before_create :determine_conversation_status
@@ -230,6 +232,17 @@ class Conversation < ApplicationRecord
 
   def dispatch_conversation_updated_event(previous_changes = nil)
     dispatcher_dispatch(CONVERSATION_UPDATED, previous_changes)
+  end
+
+  def auto_assign_to_latest_agent
+    return if assignee_id.present?
+    return if latest_agent.blank?
+
+    update_column(:assignee_id, latest_agent.id)
+  end
+
+  def latest_agent
+    messages.outgoing.where.not(sender_id: nil).last&.sender
   end
 
   private

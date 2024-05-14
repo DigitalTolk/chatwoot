@@ -149,6 +149,7 @@ class Message < ApplicationRecord
   has_one :message_csat_template_question, dependent: :destroy_async
   has_one :csat_template_question, through: :message_csat_template_question
   has_many :notifications, as: :primary_actor, dependent: :destroy_async
+  has_many :smart_actions, dependent: :destroy_async
 
   after_create_commit :execute_after_create_commit_callbacks
 
@@ -315,6 +316,11 @@ class Message < ApplicationRecord
     send_reply
     execute_message_template_hooks
     update_contact_activity
+    auto_assign_agent
+  end
+
+  def auto_assign_agent
+    conversation.auto_assign_to_latest_agent
   end
 
   def update_contact_activity

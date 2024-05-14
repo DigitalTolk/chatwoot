@@ -171,6 +171,8 @@ import { ACCOUNT_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { getDayDifferenceFromNow } from 'shared/helpers/DateHelper';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import { mapGetters } from 'vuex';
 
 export default {
   components: {
@@ -229,8 +231,8 @@ export default {
     },
     csatMessages: {
       type: Array,
-      default: []
-    }
+      default: () => [],
+    },
   },
   data() {
     return {
@@ -241,6 +243,10 @@ export default {
     };
   },
   computed: {
+    ...mapGetters({
+      isFeatureEnabledGlobally: 'accounts/isFeatureEnabledGlobally',
+      accountId: 'getCurrentAccountId',
+    }),
     attachments() {
       // Here it is used to get sender and created_at for each attachment
       return this.data?.attachments.map(attachment => ({
@@ -254,11 +260,11 @@ export default {
       return getDayDifferenceFromNow(new Date(), this.data?.created_at) >= 1;
     },
     shouldRenderMessage() {
-      if (this.data.content_type === 'input_csat'){
-        if (!this.isFirstCsat){
+      if (this.data.content_type === 'input_csat') {
+        if (!this.isFirstCsat) {
           return false;
         }
-        if (this.currentInbox.csat_trigger === 'conversation_all_reply'){
+        if (this.currentInbox.csat_trigger === 'conversation_all_reply') {
           return false;
         }
       }
@@ -271,7 +277,7 @@ export default {
         this.isAnIntegrationMessage
       );
     },
-    currentInbox(){
+    currentInbox() {
       return this.$store.getters['inboxes/getInbox'](this.data.inbox_id);
     },
     emailMessageContent() {
@@ -331,11 +337,23 @@ export default {
     },
     contextMenuEnabledOptions() {
       return {
+        smart_actions: this.enableSmartActions,
         copy: this.hasText,
         delete: this.hasText || this.hasAttachments,
         cannedResponse: this.isOutgoing && this.hasText,
         replyTo: !this.data.private && this.inboxSupportsReplyTo.outgoing,
       };
+    },
+    enableSmartActions() {
+      const isFeatEnabled = this.isFeatureEnabledGlobally(
+        this.accountId,
+        FEATURE_FLAGS.SMART_ACTIONS
+      );
+      return (
+        isFeatEnabled &&
+        this.isIncoming &&
+        (this.isAnEmailInbox || this.isWebWidgetInbox)
+      );
     },
     contentAttributes() {
       return this.data.content_attributes || {};
@@ -493,23 +511,23 @@ export default {
       }
       return '';
     },
-    firstCsat(){
-      if (this.csatMessages.length === 0){
+    firstCsat() {
+      if (this.csatMessages.length === 0) {
         return null;
       }
 
       return this.csatMessages[0];
     },
-    isFirstCsat(){
-      if (this.data.content_type !== 'input_csat' || !this.firstCsat){
+    isFirstCsat() {
+      if (this.data.content_type !== 'input_csat' || !this.firstCsat) {
         return false;
       }
 
       return this.firstCsat.id === this.data.id;
     },
-    notCsat(){
+    notCsat() {
       return this.data.content && this.data.content_type !== 'input_csat';
-    }
+    },
   },
   watch: {
     data() {
