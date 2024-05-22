@@ -1,8 +1,6 @@
 class Digitaltolk::WebflowService
   attr_accessor :params
 
-  INFO_EMAIL = 'info@digitaltolk.se'.freeze
-
   def initialize(params)
     @params = params
   end
@@ -38,7 +36,7 @@ class Digitaltolk::WebflowService
   end
 
   def emails
-    [INFO_EMAIL]
+    form_data['recipients'].to_s.split(',')
   end
 
   def webflow_params
