@@ -19,7 +19,7 @@ class Digitaltolk::AddConversationService
   end
 
   def find_or_create_contact
-    @contact = inbox.contacts.find_by(email: email_address)
+    @contact = inbox.contacts.from_email(email_address)
 
     if @contact.present?
       @contact_inbox = ContactInbox.find_by(inbox: @inbox, contact: @contact)

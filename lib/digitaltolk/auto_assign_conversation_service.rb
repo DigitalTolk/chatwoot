@@ -18,7 +18,9 @@ class Digitaltolk::AutoAssignConversationService
     unassigned_conversations.limit(20).each(&:auto_assign_to_latest_agent)
 
     unassigned_csats.limit(20).each do |csat|
+      # rubocop:disable Rails/SkipsModelValidations
       csat.update_column(:assigned_agent_id, csat.conversation.assignee_id)
+      # rubocop:enable Rails/SkipsModelValidations
     end
   end
 

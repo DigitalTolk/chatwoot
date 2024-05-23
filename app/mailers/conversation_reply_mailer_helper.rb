@@ -15,19 +15,22 @@ module ConversationReplyMailerHelper
     end
     ms_smtp_settings
     set_delivery_method
+    set_attachments
 
     Rails.logger.info("Email sent from #{email_from} to #{to_emails} with subject #{mail_subject}")
-
-    if @attachments.present?
-      @attachments.each do |attachment|
-        attachments[attachment.file.filename.to_s] = attachment.file.download
-      end
-    end
 
     mail(@options)
   end
 
   private
+
+  def set_attachments
+    return if @attachments.blank?
+
+    @attachments.each do |attachment|
+      attachments[attachment.file.filename.to_s] = attachment.file.download
+    end
+  end
 
   def ms_smtp_settings
     return unless @inbox.email? && @channel.imap_enabled && @inbox.channel.provider == 'microsoft'

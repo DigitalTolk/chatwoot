@@ -1,4 +1,5 @@
 class ClearChatwootLabels < ActiveRecord::Migration[7.0]
+  # rubocop:disable Metrics/MethodLength
   def change
     Label.destroy_all
 
@@ -64,6 +65,9 @@ class ClearChatwootLabels < ActiveRecord::Migration[7.0]
       objects << { account_id: 1, title: label, show_on_sidebar: true, description: label, color: Faker::Color.hex_color }
     end
 
+    # rubocop:disable Rails/SkipsModelValidations
     Label.insert_all(objects)
+    # rubocop:enable Rails/SkipsModelValidations
   end
+  # rubocop:enable Metrics/MethodLength
 end

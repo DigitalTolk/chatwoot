@@ -159,9 +159,7 @@ class ConversationReplyMailer < ApplicationMailer
   end
 
   def custom_message_id
-    last_message = @message || @messages&.reject(&:customized)&.last
-
-    return if last_message.blank?
+    return if (last_message = @message || @messages&.reject(&:customized)&.last).blank?
     return last_message.source_id if last_message&.source_id.present?
 
     "<conversation/#{@conversation.uuid}/messages/#{last_message&.id}@#{channel_email_domain}>"

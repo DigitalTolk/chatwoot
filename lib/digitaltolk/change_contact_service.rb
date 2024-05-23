@@ -28,22 +28,25 @@ class Digitaltolk::ChangeContactService
     @conversation.update(contact: @contact, contact_inbox: @contact_inbox)
   end
 
+  def create_contact_inbox_with_contact_attrs
+    ::ContactInboxWithContactBuilder.new(
+      source_id: @email,
+      inbox: @inbox,
+      contact_attributes: {
+        name: identify_contact_name,
+        email: @email,
+        additional_attributes: {
+          source_id: "email:#{source_id}"
+        }
+      }
+    ).perform
+  end
+
   def find_or_create_contact
-    @contact = @account.contacts.find_by(email: @email)
+    @contact = @account.contacts.from_email(@email)
 
     if @contact.blank?
-      @contact_inbox = ::ContactInboxWithContactBuilder.new(
-        source_id: @email,
-        inbox: @inbox,
-        contact_attributes: {
-          name: identify_contact_name,
-          email: @email,
-          additional_attributes: {
-            source_id: "email:#{source_id}"
-          }
-        }
-      ).perform
-
+      @contact_inbox = create_contact_inbox_with_contact_attrs
       @contact = @contact_inbox.contact
     else
       @contact_inbox = @inbox.contact_inboxes.find_by(contact: @contact)

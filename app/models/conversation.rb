@@ -245,7 +245,9 @@ class Conversation < ApplicationRecord
     return if assignee_id.present?
     return if latest_agent.blank?
 
+    # rubocop:disable Rails/SkipsModelValidations
     update_column(:assignee_id, latest_agent.id)
+    # rubocop:enable Rails/SkipsModelValidations
   end
 
   def latest_agent

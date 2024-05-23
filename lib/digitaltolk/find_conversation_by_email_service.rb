@@ -19,7 +19,7 @@ class Digitaltolk::FindConversationByEmailService
   end
 
   def find_contact
-    @contact = Contact.find_by(email: email)
+    @contact = Contact.from_email(email)
   end
 
   def email

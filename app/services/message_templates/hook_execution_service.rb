@@ -54,6 +54,7 @@ class MessageTemplates::HookExecutionService
     contact.email
   end
 
+  # rubocop:disable Metrics/CyclomaticComplexity
   def csat_enabled_conversation?
     return false unless conversation.resolved? || ((message.outgoing? || message.input_csat?) && inbox.send_csat_on_all_reply?)
 
@@ -64,23 +65,23 @@ class MessageTemplates::HookExecutionService
 
     true
   end
+  # rubocop:enable Metrics/CyclomaticComplexity
 
   def should_send_csat_survey?
     return unless csat_enabled_conversation?
 
     if inbox.csat_template_enabled?
-      last_csat_reached = conversation.messages.csat.count >= csat_template.questions_count
-      if inbox.email?
-        return if last_csat_reached
-      elsif last_csat_reached || conversation.messages.unanswered_csat.exists?
-        return
-      end
+      return if last_csat_reached? || (!inbox.email? && conversation.messages.unanswered_csat.exists?)
     elsif conversation.messages.csat.present?
       return
       # only send CSAT once in a conversation
     end
 
     true
+  end
+
+  def last_csat_reached?
+    conversation.messages.csat.count >= csat_template.questions_count
   end
 end
 MessageTemplates::HookExecutionService.prepend_mod_with('MessageTemplates::HookExecutionService')
