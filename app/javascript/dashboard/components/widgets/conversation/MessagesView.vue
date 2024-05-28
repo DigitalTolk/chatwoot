@@ -181,7 +181,7 @@ export default {
       loadingChatList: 'getChatListLoadingStatus',
       appIntegrations: 'integrations/getAppIntegrations',
       isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
-      isFeatureEnabledGlobally: 'accounts/isFeatureEnabledGlobally',
+      isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
       currentAccountId: 'getCurrentAccountId',
     }),
     isOpen() {
@@ -363,7 +363,7 @@ export default {
     },
 
     enabledSmartActions() {
-      const isFeatEnabled = this.isFeatureEnabledGlobally(
+      const isFeatEnabled = this.isFeatureEnabledonAccount(
         this.accountId,
         FEATURE_FLAGS.SMART_ACTIONS
       );

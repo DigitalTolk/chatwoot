@@ -240,7 +240,7 @@ export default {
   },
   computed: {
     ...mapGetters({
-      isFeatureEnabledGlobally: 'accounts/isFeatureEnabledGlobally',
+      isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
       accountId: 'getCurrentAccountId',
     }),
     attachments() {
@@ -341,7 +341,7 @@ export default {
       };
     },
     enableSmartActions() {
-      const isFeatEnabled = this.isFeatureEnabledGlobally(
+      const isFeatEnabled = this.isFeatureEnabledonAccount(
         this.accountId,
         FEATURE_FLAGS.SMART_ACTIONS
       );

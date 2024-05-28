@@ -132,7 +132,7 @@ export default {
     WootDropdownMenu,
     CustomSnoozeModal,
   },
-  mixins: [clickaway, alertMixin, keyboardEventListenerMixins, uiSettingsMixin, adminMixin],
+  mixins: [alertMixin, keyboardEventListenerMixins, uiSettingsMixin, adminMixin],
   props: { conversationId: { type: [String, Number], required: true } },
   data() {
     return {

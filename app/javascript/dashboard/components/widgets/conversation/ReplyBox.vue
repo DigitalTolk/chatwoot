@@ -275,7 +275,7 @@ export default {
       lastEmail: 'getLastEmailInSelectedChat',
       globalConfig: 'globalConfig/get',
       accountId: 'getCurrentAccountId',
-      isFeatureEnabledGlobally: 'accounts/isFeatureEnabledGlobally',
+      isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
       smartActions: 'getSmartActions',
       copilotResponse: 'getCopilotResponse',
     }),
@@ -486,7 +486,7 @@ export default {
       );
     },
     enableSmartActions() {
-      const isFeatEnabled = this.isFeatureEnabledGlobally(
+      const isFeatEnabled = this.isFeatureEnabledonAccount(
         this.accountId,
         FEATURE_FLAGS.SMART_ACTIONS
       );

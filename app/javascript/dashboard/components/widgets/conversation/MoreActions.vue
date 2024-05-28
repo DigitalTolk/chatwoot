@@ -71,7 +71,7 @@ export default {
     ResolveAction,
     SmartActions,
   },
-  mixins: [alertMixin, clickaway, inboxMixin],
+  mixins: [alertMixin, inboxMixin],
   data() {
     return {
       showEmailActionsModal: false,
@@ -79,13 +79,13 @@ export default {
   },
   computed: {
     ...mapGetters({
-      isFeatureEnabledGlobally: 'accounts/isFeatureEnabledGlobally',
+      isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
       currentChat: 'getSelectedChat',
       accountId: 'getCurrentAccountId',
       showSmartActions: 'showSmartActions',
     }),
     enableSmartActions() {
-      const isFeatEnabled = this.isFeatureEnabledGlobally(
+      const isFeatEnabled = this.isFeatureEnabledonAccount(
         this.accountId,
         FEATURE_FLAGS.SMART_ACTIONS
       );
