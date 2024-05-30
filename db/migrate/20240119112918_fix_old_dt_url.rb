@@ -8,7 +8,9 @@ class FixOldDtUrl < ActiveRecord::Migration[7.0]
 
       new_content = new_content.gsub(old_url, new_url)
       Rails.logger.debug new_content
+      # rubocop:disable Rails/SkipsModelValidations
       message.update_column(:content, new_content)
+      # rubocop:enable Rails/SkipsModelValidations
     end
   end
 end
