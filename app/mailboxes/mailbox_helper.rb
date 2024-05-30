@@ -2,7 +2,7 @@ module MailboxHelper
   private
 
   def create_message
-    Rails.logger.info "[MailboxHelper] Creating message #{processed_mail.message_id}"
+    # Rails.logger.info "[MailboxHelper] Creating message #{processed_mail.message_id}"
     return if @conversation.messages.find_by(source_id: processed_mail.message_id).present?
 
     @message = @conversation.messages.create!(

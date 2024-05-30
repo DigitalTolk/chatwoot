@@ -8,7 +8,6 @@ class Migration::ClearConversationDraftJob < ApplicationJob
     counter = 0
     if account.present?
       account.conversations.each do |convo|
-        key = format(Redis::Alfred::CONVERSATION_DRAFT_MESSAGE, conversation_id: convo.id, account_id: account.id)
         convo.clear_draft_message
         counter += 1
         Rails.logger.debug '.'

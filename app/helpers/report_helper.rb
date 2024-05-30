@@ -1,4 +1,6 @@
 module ReportHelper
+  include CustomReportHelper
+
   private
 
   def scope
@@ -14,36 +16,6 @@ module ReportHelper
     when :team
       team
     end
-  end
-
-  def custom_filter(collection)
-    collection.filter_by_label(selected_label)
-              .filter_by_team(selected_team)
-              .filter_by_inbox(selected_inbox)
-              .filter_by_rating(selected_rating)
-  end
-
-  def get_filter(key)
-    filter = params.dig(:custom_filter, key)
-    return [] if filter.blank?
-
-    filter.to_unsafe_h.values
-  end
-
-  def selected_label
-    get_filter(:selected_label)
-  end
-
-  def selected_team
-    get_filter(:selected_team)
-  end
-
-  def selected_inbox
-    get_filter(:selected_inbox)
-  end
-
-  def selected_rating
-    get_filter(:selected_rating)
   end
 
   def conversations_count
@@ -83,13 +55,13 @@ module ReportHelper
   end
 
   def resolutions
-    custom_filter(scope.reporting_events).joins(:conversation).select(:conversation_id).where(account_id: account.id, name: :conversation_resolved,
-                                                                                              conversations: { status: :resolved }, created_at: range).distinct
+    custom_filter(scope.reporting_events).joins(:conversation).select(:conversation_id).where(conversations: { status: :resolved })
+                                         .where(account_id: account.id, name: :conversation_resolved, created_at: range).distinct
   end
 
   def bot_resolutions
-    custom_filter(scope.reporting_events).joins(:conversation).select(:conversation_id).where(account_id: account.id, name: :conversation_bot_resolved,
-                                                                                              conversations: { status: :resolved }, created_at: range).distinct
+    custom_filter(scope.reporting_events).joins(:conversation).select(:conversation_id).where(conversations: { status: :resolved })
+                                         .where(account_id: account.id, name: :conversation_bot_resolved, created_at: range).distinct
   end
 
   def bot_handoffs
