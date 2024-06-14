@@ -108,7 +108,12 @@
       }
     },
     "CONTACT": {
-      "CHANGE": "Change Contact"
+      "CHANGE": "Change Contact",
+      "CHANGE_TYPE": {
+        "TITLE": "Change Contact Type",
+        "SUCCESSFUL": "Changed contact type of conversation id %{conversationId} to %{contactKind}",
+        "FAILED": "Couldn't change contact type. Please try again."
+      }
     },
     "CARD_CONTEXT_MENU": {
       "PENDING": "Mark as pending",
@@ -281,6 +286,7 @@
       "CONVERSATION_LABELS": "Conversation Labels",
       "CONVERSATION_INFO": "Conversation Information",
       "CONTACT_ATTRIBUTES": "Contact Attributes",
+      "CONTACT_KIND": "Contact Type",
       "PREVIOUS_CONVERSATION": "Previous Conversations",
       "MACROS": "Macros"
     }
