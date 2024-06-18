@@ -24,10 +24,9 @@ module Digitaltolk
     private
 
     def toggle_contact_kind_labels
-      # allow only on Digitaltolk Sweden
-      return unless @account.id == 1
-      updated_labels = (@conversation.cached_label_list_array - KIND_LABELS.values + [KIND_LABELS[@contact_kind]]).uniq
+      return unless @account.feature_enabled?("required_contact_type")
 
+      updated_labels = (@conversation.cached_label_list_array - KIND_LABELS.values + [KIND_LABELS[@contact_kind]]).uniq
       @conversation.update_labels(updated_labels)
     end
 

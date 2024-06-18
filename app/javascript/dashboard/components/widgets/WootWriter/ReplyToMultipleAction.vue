@@ -118,6 +118,7 @@
     computed: {
       ...mapGetters({ 
         currentChat: 'getSelectedChat',
+        accountId: 'getCurrentAccountId',
         isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
       }),
       isOpen() {
