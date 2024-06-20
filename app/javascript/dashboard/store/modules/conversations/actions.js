@@ -509,7 +509,7 @@ const actions = {
   },
 
   addSmartAction: async({ commit}, data) => {
-    commit(types.ADD_SMART_ACTIONS, data);
+    commit(types.ADD_SMART_ACTION, data);
   },
 
   showSmartActions: ({ commit }, value) => {

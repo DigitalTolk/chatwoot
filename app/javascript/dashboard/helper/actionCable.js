@@ -122,7 +122,6 @@ class ActionCableConnector extends BaseActionCableConnector {
   };
 
   onSmartActionCreated = data => {
-    const { conversation_id: conversationId } = data;
     this.app.$store.dispatch('addSmartAction', data)
   }
 

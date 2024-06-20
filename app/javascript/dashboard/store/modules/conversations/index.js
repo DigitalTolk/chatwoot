@@ -294,7 +294,7 @@ export const mutations = {
     Vue.set(_state, 'smartActions', data);
   },
 
-  [types.ADD_SMART_ACTIONS](_state, data) {
+  [types.ADD_SMART_ACTION](_state, data) {
     _state.smartActions.push(data);
   },
 
