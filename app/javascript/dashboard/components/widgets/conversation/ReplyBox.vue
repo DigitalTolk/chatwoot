@@ -943,10 +943,6 @@ export default {
       }, 100);
     },
     async onAskCopilot(response) {
-      if (!this.enableSmartActions) {
-        return;
-      }
-
       if (
         !response &&
         !response.content &&
