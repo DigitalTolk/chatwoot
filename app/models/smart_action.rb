@@ -29,7 +29,7 @@ class SmartAction < ApplicationRecord
   validates :conversation_id, presence: true
 
   scope :ask_copilot, -> { where(event: 'ask_copilot') }
-  
+
   delegate :account, to: :conversation
 
   after_create_commit :execute_after_create_commit_callbacks
