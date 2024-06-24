@@ -5,8 +5,7 @@ class Api::V1::Accounts::MessagesController < Api::V1::Accounts::BaseController
   before_action :set_messages, only: [:index]
   before_action :set_current_page, only: [:index]
 
-  def index
-  end
+  def index; end
 
   private
 

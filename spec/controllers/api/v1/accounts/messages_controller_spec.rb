@@ -20,7 +20,7 @@ RSpec.describe 'Messages API', type: :request do
 
     context 'when authenticated' do
       it 'returns messages' do
-        get api_v1_account_messages_path(account_id: account.id), 
+        get api_v1_account_messages_path(account_id: account.id),
             headers: agent.create_new_auth_token
 
         expect(response).to have_http_status(:success)
@@ -35,8 +35,8 @@ RSpec.describe 'Messages API', type: :request do
         end
 
         it 'returns correct messages count' do
-          get api_v1_account_messages_path(account_id: account.id, inbox_id: @other_inbox.id), 
-            headers: agent.create_new_auth_token
+          get api_v1_account_messages_path(account_id: account.id, inbox_id: @other_inbox.id),
+              headers: agent.create_new_auth_token
 
           expect(response.parsed_body['payload'].size).to eq(7)
         end
@@ -50,8 +50,8 @@ RSpec.describe 'Messages API', type: :request do
         end
 
         it 'returns correct messages count' do
-          get api_v1_account_messages_path(account_id: account.id, since: 4.days.ago.to_i, until: 2.days.ago.to_i), 
-            headers: agent.create_new_auth_token
+          get api_v1_account_messages_path(account_id: account.id, since: 4.days.ago.to_i, until: 2.days.ago.to_i),
+              headers: agent.create_new_auth_token
 
           expect(response.parsed_body['payload'].size).to eq(2)
         end
@@ -66,8 +66,8 @@ RSpec.describe 'Messages API', type: :request do
         end
 
         it 'returns correct messages count' do
-          get api_v1_account_messages_path(account_id: account.id, team_id: @team.id), 
-            headers: agent.create_new_auth_token
+          get api_v1_account_messages_path(account_id: account.id, team_id: @team.id),
+              headers: agent.create_new_auth_token
 
           expect(response.parsed_body['payload'].size).to eq(4)
         end
@@ -80,8 +80,8 @@ RSpec.describe 'Messages API', type: :request do
         end
 
         it 'returns correct messages count' do
-          get api_v1_account_messages_path(account_id: account.id, label: @label.title), 
-            headers: agent.create_new_auth_token
+          get api_v1_account_messages_path(account_id: account.id, label: @label.title),
+              headers: agent.create_new_auth_token
 
           expect(response.parsed_body['payload'].size).to eq(12)
         end

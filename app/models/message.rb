@@ -121,7 +121,7 @@ class Message < ApplicationRecord
   }
 
   scope :filter_by_created_at, ->(range) { where(created_at: range) if range.present? }
-  
+
   scope :filter_by_label, lambda { |selected_label|
     joins(:conversation).where(conversations: { cached_label_list: selected_label }) if selected_label.present?
   }
