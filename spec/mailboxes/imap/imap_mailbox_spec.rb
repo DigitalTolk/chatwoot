@@ -44,7 +44,7 @@ RSpec.describe Imap::ImapMailbox do
     end
 
     context 'when a new email from existing contact' do
-      let(:inbound_mail) { create_inbound_email_from_mail(from: 'email@gmail.com', to: 'imap@gmail.com', subject: 'Hello!') }
+      let(:inbound_mail) { create_inbound_email_from_mail(from: contact.email, to: 'imap@gmail.com', subject: 'Hello!') }
 
       it 'creates a new conversation with message' do
         class_instance.process(inbound_mail.mail, channel)
