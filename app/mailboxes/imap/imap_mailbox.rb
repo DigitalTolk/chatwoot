@@ -89,7 +89,7 @@ class Imap::ImapMailbox
 
   def find_conversation_by_contact
     @convo = find_conversation_by_in_reply_to || find_conversation_by_reference_ids
-    Conversation.find_by(id: @convo.id, contact: @contact)
+    Conversation.find_by(id: @convo&.id, contact: @contact)
   end
 
   def find_or_create_conversation
