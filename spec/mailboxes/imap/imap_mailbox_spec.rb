@@ -99,6 +99,15 @@ RSpec.describe Imap::ImapMailbox do
         expect(prev_conversation.messages.last.content_attributes['email']['subject']).to eq(reply_mail.mail.subject)
         expect(prev_conversation.messages.last.content_attributes['email']['in_reply_to']).to eq(reply_mail.mail.in_reply_to)
       end
+
+      context 'when a reply is from a different contact' do
+        let(:inbound_mail2) { create_inbound_email_from_mail(from: 'testemail@gmail.com', to: 'imap@gmail.com', subject: 'Hello!') }
+
+        it 'creates a new conversation' do
+          class_instance.process(inbound_mail2.mail, channel)
+          expect(Conversation.count).to eq(2)
+        end
+      end
     end
 
     context 'when a new conversation with nil in_reply_to' do

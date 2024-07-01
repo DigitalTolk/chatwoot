@@ -87,8 +87,13 @@ class Imap::ImapMailbox
     message_to_return
   end
 
+  def find_conversation_by_contact
+    @convo = find_conversation_by_in_reply_to || find_conversation_by_reference_ids
+    Conversation.find_by(id: @convo.id, contact: @contact)
+  end
+
   def find_or_create_conversation
-    @conversation = find_conversation_by_in_reply_to || find_conversation_by_reference_ids || ::Conversation.create!(
+    @conversation = find_conversation_by_contact || ::Conversation.create!(
       {
         account_id: @account.id,
         inbox_id: @inbox.id,
