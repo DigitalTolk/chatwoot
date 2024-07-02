@@ -99,14 +99,27 @@ RSpec.describe Imap::ImapMailbox do
         expect(prev_conversation.messages.last.content_attributes['email']['subject']).to eq(reply_mail.mail.subject)
         expect(prev_conversation.messages.last.content_attributes['email']['in_reply_to']).to eq(reply_mail.mail.in_reply_to)
       end
+    end
 
-      context 'when a reply is from a different contact' do
-        let(:inbound_mail2) { create_inbound_email_from_mail(from: 'testemail@gmail.com', to: 'imap@gmail.com', subject: 'Hello!') }
+    context 'when a reply is from a different contact' do
+      let(:prev_conversation) { create(:conversation, account: account, inbox: channel.inbox, assignee: agent, contact: contact) }
+      let(:references_email) { create_inbound_email_from_fixture('references.eml') }
 
-        it 'creates a new conversation' do
-          class_instance.process(inbound_mail2.mail, channel)
-          expect(Conversation.count).to eq(2)
-        end
+      it 'creates a new conversation' do
+        message = create(
+          :message,
+          content: 'Incoming Message',
+          message_type: 'incoming',
+          inbox: inbox,
+          account: account,
+          conversation: conversation
+        )
+
+        conversation = message.conversation
+        conversation.update_column(:contact_id, contact.id)
+        expect(conversation.messages.size).to eq(1)
+
+        expect { class_instance.process(references_email.mail, inbox.channel) }.to change { Conversation.count }.by(1)
       end
     end
 
@@ -204,10 +217,10 @@ RSpec.describe Imap::ImapMailbox do
         expect(conversation.messages.last.content).to eq('References Email')
         expect(references_same_email.mail.references).to include('test-reference-id-2')
       end
+
       context 'when message is from a different contact' do
         it 'creates a new conversation' do
-          class_instance.process(references_email.mail, channel)
-          expect(Conversation.count).to eq(2)
+          expect { class_instance.process(references_email.mail, inbox.channel) }.to change { Conversation.count }.by(1)
         end
       end
     end
