@@ -47,15 +47,12 @@ jobs:
     
     - name: parquet libraries
       run: |
-        sudo apt install -y -V ca-certificates lsb-release wget && \
-        wget https://packages.red-data-tools.org/$(lsb_release --id --short \
-          | tr 'A-Z' 'a-z')/red-data-tools-apt-source-latest-$(lsb_release --codename --short).deb && \
-        sudo apt install -y -V ./red-data-tools-apt-source-latest-$(lsb_release --codename --short).deb && \
-        sudo apt update && \
-        sudo apt install -y -V libarrow-dev && \
-        sudo apt install -y -V libarrow-glib-dev && \
-        sudo apt install -y -V libparquet-dev && \
-        sudo apt install -y -V libparquet-glib-dev
+        sudo apt update
+        sudo apt install -y -V ca-certificates lsb-release wget
+        wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb
+        sudo apt install -y -V ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb
+        sudo apt update
+        sudo apt-get install -y libpq-dev libarrow-dev libarrow-glib-dev libparquet-glib-dev libgirepository-1.0-1 libgirepository1.0-dev
 
     - uses: ruby/setup-ruby@v1
       with:
