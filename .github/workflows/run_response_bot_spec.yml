@@ -47,15 +47,15 @@ jobs:
     
     - name: parquet libraries
       run: |
-        sudo apt install -y -V ca-certificates lsb-release wget
+        sudo apt install -y -V ca-certificates lsb-release wget && \
         wget https://packages.red-data-tools.org/$(lsb_release --id --short \
-          | tr 'A-Z' 'a-z')/red-data-tools-apt-source-latest-$(lsb_release --codename --short).deb
-        sudo apt install -y -V ./red-data-tools-apt-source-latest-$(lsb_release --codename --short).deb
-        sudo apt update
-        sudo apt install -y -V libarrow-dev # For C++
-        sudo apt install -y -V libarrow-glib-dev # For GLib (C)
-        sudo apt install -y -V libparquet-dev # For C++
-        sudo apt install -y -V libparquet-glib-dev # For GLib (C)
+          | tr 'A-Z' 'a-z')/red-data-tools-apt-source-latest-$(lsb_release --codename --short).deb && \
+        sudo apt install -y -V ./red-data-tools-apt-source-latest-$(lsb_release --codename --short).deb && \
+        sudo apt update && \
+        sudo apt install -y -V libarrow-dev && \
+        sudo apt install -y -V libarrow-glib-dev && \
+        sudo apt install -y -V libparquet-dev && \
+        sudo apt install -y -V libparquet-glib-dev
 
     - uses: ruby/setup-ruby@v1
       with:
