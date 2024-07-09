@@ -44,21 +44,6 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.ref }}
         repository: ${{ github.event.pull_request.head.repo.full_name }}
-    # install missing libraries
-    - name: Install missing libraries
-      run: sudo apt-get install -y libgtk2.0-dev gobject-introspection libgirepository1.0-dev
-    
-    - name: Install red-data-tools
-      run sudo apt install -y -V ca-certificates lsb-release wget
-
-    - name: Install packages
-      run: wget https://packages.red-data-tools.org/$(lsb_release --id --short | tr 'A-Z' 'a-z')/red-data-tools-apt-source-latest-$(lsb_release --codename --short).deb
-    
-    - name: Install deb
-      run: sudo apt install -y -V ./red-data-tools-apt-source-latest-$(lsb_release --codename --short).deb
-    
-    - name: update
-      run: sudo apt update
     
     - uses: ruby/setup-ruby@v1
       with:
