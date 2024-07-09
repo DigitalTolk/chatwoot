@@ -45,13 +45,23 @@ jobs:
         ref: ${{ github.event.pull_request.head.ref }}
         repository: ${{ github.event.pull_request.head.repo.full_name }}
     
+    - name: parquet libraries
+      run: |
+        apt update && \
+        apt install -y -V ca-certificates lsb-release wget && \
+        wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb && \
+        apt install -y -V ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb && \
+        apt update && \
+        apt install -y -V libarrow-dev && \
+        apt install -y -V libparquet-dev
+
     - uses: ruby/setup-ruby@v1
       with:
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
 
     - uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 21
         cache: yarn
 
     - name: yarn
