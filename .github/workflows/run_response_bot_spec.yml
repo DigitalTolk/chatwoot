@@ -45,7 +45,7 @@ jobs:
         ref: ${{ github.event.pull_request.head.ref }}
         repository: ${{ github.event.pull_request.head.repo.full_name }}
     
-    - name: parquet libraries
+    - name: install parquet libraries
       run: |
         sudo apt update
         sudo apt install -y -V ca-certificates lsb-release wget
