@@ -12,11 +12,15 @@ class Imap::ImapMailbox
     # prevent loop from chatwoot notification emails
     return if notification_email_from_chatwoot?
 
+    # Stop processing if email format doesn't match Chatwoot supported mail format
+    return unless email_from_valid_email?
+
     ActiveRecord::Base.transaction do
       find_or_create_contact
       find_or_create_conversation
       create_message
       add_attachments_to_message
+      connect_original_conversation
     end
   end
 
@@ -34,14 +38,26 @@ class Imap::ImapMailbox
     @processed_mail = MailPresenter.new(@inbound_mail, @account)
   end
 
+  def email_from_valid_email?
+    Rails.logger.info("Processing Email from: #{@processed_mail.original_sender} : inbox #{@inbox.id}")
+
+    # validate email with  Devise.email_regexp
+    if Devise.email_regexp.match?(@processed_mail.original_sender)
+      true
+    else
+      Rails.logger.error("Email from: #{@processed_mail.original_sender} : inbox #{@inbox.id} is invalid")
+      false
+    end
+  end
+
   def find_conversation_by_in_reply_to
     return if in_reply_to.blank?
 
     message = @inbox.messages.find_by(source_id: in_reply_to)
     if message.nil?
-      @inbox.conversations.where("additional_attributes->>'in_reply_to' = ?", in_reply_to).first
+      @inbox.conversations.unclosed.where("additional_attributes->>'in_reply_to' = ?", in_reply_to).where(contact: @contact).first
     else
-      @inbox.conversations.find(message.conversation_id)
+      @inbox.conversations.unclosed.find_by(id: message.conversation_id, contact: @contact)
     end
   end
 
@@ -52,7 +68,7 @@ class Imap::ImapMailbox
 
     return if message.nil?
 
-    @inbox.conversations.find(message.conversation_id)
+    @inbox.conversations.unclosed.find_by(id: message.conversation_id, contact: @contact)
   end
 
   def in_reply_to
@@ -90,8 +106,21 @@ class Imap::ImapMailbox
     )
   end
 
+  def connect_original_conversation
+    return if @conversation.blank?
+
+    message = (@inbox.messages.find_by(source_id: in_reply_to) if in_reply_to.present?)
+    message ||= find_message_by_references
+
+    return if message.blank?
+    return unless message.conversation.closed?
+    return if message.conversation.id == @conversation.id
+
+    Digitaltolk::ConnectOriginalConversationService.new(@conversation, message.conversation).perform
+  end
+
   def find_or_create_contact
-    @contact = @inbox.contacts.find_by(email: @processed_mail.original_sender)
+    @contact = @inbox.contacts.from_email(@processed_mail.original_sender)
     if @contact.present?
       @contact_inbox = ContactInbox.find_by(inbox: @inbox, contact: @contact)
     else

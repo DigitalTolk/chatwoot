@@ -8,6 +8,8 @@ import {
   toggleStatus,
   setCustomAttributes,
   deleteCustomAttribute,
+  getTotalQuestions,
+  getCsatTemplateStatus,
 } from 'widget/api/conversation';
 
 import { ON_CONVERSATION_CREATED } from 'widget/constants/widgetBusEvents';
@@ -193,5 +195,15 @@ export const actions = {
     } catch (error) {
       // IgnoreError
     }
+  },
+
+  getTotalCsatQuestions: async ({ commit }) => {
+    var response = await getTotalQuestions();
+    commit('setTotalCsat', response.data.total);
+  },
+
+  getCsatTemplateStatus: async ({ commit }) => {
+    var response = await getCsatTemplateStatus();
+    commit('setCsatTemplateEnabled', response.data.status);
   },
 };

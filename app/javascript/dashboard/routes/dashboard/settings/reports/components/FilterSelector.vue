@@ -1,6 +1,8 @@
 <template>
-  <div class="flex flex-col md:flex-row justify-between mb-4">
-    <div class="md:grid flex flex-col filter-container gap-3 w-full">
+  <div class="flex flex-col justify-between gap-3 mb-4 md:flex-row">
+    <div
+      class="w-full grid gap-y-2 gap-x-1.5 grid-cols-[repeat(auto-fill,minmax(250px,1fr))]"
+    >
       <reports-filters-date-range @on-range-change="onDateRangeChange" />
       <woot-date-range-picker
         v-if="isDateRangeSelected"
@@ -24,22 +26,31 @@
       <reports-filters-labels
         v-if="showLabelsFilter"
         @labels-filter-selection="handleLabelsFilterSelection"
+        :multiple="multipleLabels"
       />
       <reports-filters-teams
         v-if="showTeamFilter"
         @team-filter-selection="handleTeamFilterSelection"
+        :multiple="multipleTeams"
       />
       <reports-filters-inboxes
         v-if="showInboxFilter"
         @inbox-filter-selection="handleInboxFilterSelection"
+        :multiple="multipleInboxes"
       />
       <reports-filters-ratings
         v-if="showRatingFilter"
         @rating-filter-selection="handleRatingFilterSelection"
+        :multiple="multipleRatings"
+      />
+      <reports-filters-questions
+        v-if="showQuestionFilter"
+        @question-filter-selection="handleRatingQuestionSelection"
+        :multiple="multipleQuestions"
       />
     </div>
-    <div v-if="showBusinessHoursSwitch" class="flex items-center">
-      <span class="text-sm whitespace-nowrap mx-2">
+    <div v-if="showBusinessHoursSwitch" class="flex items-baseline">
+      <span class="mx-2 text-sm whitespace-nowrap">
         {{ $t('REPORT.BUSINESS_HOURS') }}
       </span>
       <span>
@@ -57,6 +68,7 @@ import ReportsFiltersLabels from './Filters/Labels.vue';
 import ReportsFiltersInboxes from './Filters/Inboxes.vue';
 import ReportsFiltersTeams from './Filters/Teams.vue';
 import ReportsFiltersRatings from './Filters/Ratings.vue';
+import ReportsFiltersQuestions from './Filters/Questions.vue';
 import subDays from 'date-fns/subDays';
 import { DATE_RANGE_OPTIONS } from '../constants';
 import { getUnixStartOfDay, getUnixEndOfDay } from 'helpers/DateHelper';
@@ -71,6 +83,7 @@ export default {
     ReportsFiltersInboxes,
     ReportsFiltersTeams,
     ReportsFiltersRatings,
+    ReportsFiltersQuestions,
   },
   props: {
     filterItemsList: {
@@ -105,6 +118,30 @@ export default {
       type: Boolean,
       default: true,
     },
+    showQuestionFilter: {
+      type: Boolean,
+      default: false,
+    },
+    multipleInboxes: {
+      type: Boolean,
+      default: false,
+    },
+    multipleLabels: {
+      type: Boolean,
+      default: false,
+    },
+    multipleTeams: {
+      type: Boolean,
+      default: false,
+    },
+    multipleRatings: {
+      type: Boolean,
+      default: false,
+    },
+    multipleQuestions: {
+      type: Boolean,
+      default: false,
+    }
   },
   data() {
     return {
@@ -116,6 +153,7 @@ export default {
       selectedTeam: null,
       selectedRating: null,
       selectedAgents: [],
+      selectedQuestion: [],
       customDateRange: [new Date(), new Date()],
       businessHoursSelected: false,
     };
@@ -179,6 +217,7 @@ export default {
         selectedInbox,
         selectedTeam,
         selectedRating,
+        selectedQuestion,
       } = this;
       this.$emit('filter-change', {
         from,
@@ -190,6 +229,7 @@ export default {
         selectedInbox,
         selectedTeam,
         selectedRating,
+        selectedQuestion,
       });
     },
     onDateRangeChange(selectedRange) {
@@ -226,12 +266,10 @@ export default {
       this.selectedRating = selectedRating;
       this.emitChange();
     },
+    handleRatingQuestionSelection(selectedQuestion){
+      this.selectedQuestion = selectedQuestion;
+      this.emitChange();
+    },
   },
 };
 </script>
-
-<style scoped>
-.filter-container {
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-}
-</style>

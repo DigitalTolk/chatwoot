@@ -72,6 +72,7 @@ export default {
   computed: {
     ...mapGetters({
       isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
+      chatLists: 'getAllConversations',
     }),
     hasSecondaryMenu() {
       return this.menuConfig.menuItems && this.menuConfig.menuItems.length;
@@ -118,6 +119,8 @@ export default {
             type: inbox.channel_type,
             phoneNumber: inbox.phone_number,
             reauthorizationRequired: inbox.reauthorization_required,
+            statsField: 'allInboxOpenCount',
+            showOpenConversationCount: true,
           }))
           .sort((a, b) =>
             a.label.toLowerCase() > b.label.toLowerCase() ? 1 : -1
@@ -186,6 +189,8 @@ export default {
           id: team.id,
           label: team.name,
           truncateLabel: true,
+          statsField: 'myTeamsOpenCount',
+          showOpenConversationCount: true,
           toState: frontendURL(`accounts/${this.accountId}/team/${team.id}`),
         })),
       };

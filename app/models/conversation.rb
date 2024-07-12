@@ -6,7 +6,9 @@
 #  additional_attributes  :jsonb
 #  agent_last_seen_at     :datetime
 #  assignee_last_seen_at  :datetime
-#  cached_label_list      :string
+#  cached_label_list      :text
+#  closed                 :boolean          default(FALSE)
+#  contact_kind           :integer          default(0)
 #  contact_last_seen_at   :datetime
 #  custom_attributes      :jsonb
 #  first_reply_created_at :datetime
@@ -41,7 +43,6 @@
 #  index_conversations_on_first_reply_created_at      (first_reply_created_at)
 #  index_conversations_on_id_and_account_id           (account_id,id)
 #  index_conversations_on_inbox_id                    (inbox_id)
-#  index_conversations_on_last_activity_at            (last_activity_at)
 #  index_conversations_on_priority                    (priority)
 #  index_conversations_on_status_and_account_id       (status,account_id)
 #  index_conversations_on_status_and_priority         (status,priority)
@@ -57,10 +58,12 @@ class Conversation < ApplicationRecord
   include ActivityMessageHandler
   include UrlHelper
   include SortHandler
+  include PushDataHelper
   include ConversationMuteHelpers
 
   validates :account_id, presence: true
   validates :inbox_id, presence: true
+  validates :contact_id, presence: true
   before_validation :validate_additional_attributes
   validates :additional_attributes, jsonb_attributes_length: true
   validates :custom_attributes, jsonb_attributes_length: true
@@ -70,9 +73,11 @@ class Conversation < ApplicationRecord
   enum status: { open: 0, resolved: 1, pending: 2, snoozed: 3 }
   enum priority: { low: 0, medium: 1, high: 2, urgent: 3 }
 
+  scope :unclosed, -> { where(closed: false) }
   scope :unassigned, -> { where(assignee_id: nil) }
   scope :assigned, -> { where.not(assignee_id: nil) }
   scope :assigned_to, ->(agent) { where(assignee_id: agent.id) }
+  scope :attended, -> { where.not(first_reply_created_at: nil) }
   scope :unattended, -> { where(first_reply_created_at: nil).or(where.not(waiting_since: nil)) }
   scope :resolvable, lambda { |auto_resolve_duration|
     return none if auto_resolve_duration.to_i.zero?
@@ -87,6 +92,22 @@ class Conversation < ApplicationRecord
     ).sort_on_last_user_message_at
   }
 
+  scope :filter_by_label, lambda { |selected_label|
+    where(cached_label_list: selected_label) if selected_label.present?
+  }
+
+  scope :filter_by_team, lambda { |selected_team|
+    where(team_id: selected_team) if selected_team.present?
+  }
+
+  scope :filter_by_inbox, lambda { |selected_inbox|
+    where(inbox_id: selected_inbox) if selected_inbox.present?
+  }
+
+  scope :filter_by_rating, lambda { |selected_rating|
+    where(id: ::CsatSurveyResponse.where(rating: selected_rating).select(:conversation_id)) if selected_rating.present?
+  }
+
   belongs_to :account
   belongs_to :inbox
   belongs_to :assignee, class_name: 'User', optional: true, inverse_of: :assigned_conversations
@@ -97,18 +118,19 @@ class Conversation < ApplicationRecord
 
   has_many :mentions, dependent: :destroy_async
   has_many :messages, dependent: :destroy_async, autosave: true
-  has_one :csat_survey_response, dependent: :destroy_async
+  has_many :csat_survey_responses, dependent: :destroy_async
   has_many :conversation_participants, dependent: :destroy_async
   has_many :notifications, as: :primary_actor, dependent: :destroy_async
   has_many :attachments, through: :messages
+  has_many :smart_actions, dependent: :destroy_async
 
   before_save :ensure_snooze_until_reset
-  before_create :mark_conversation_pending_if_bot
+  before_create :determine_conversation_status
   before_create :ensure_waiting_since
 
   after_update_commit :execute_after_update_commit_callbacks
   after_create_commit :notify_conversation_creation
-  after_commit :set_display_id, unless: :display_id?
+  after_create_commit :load_attributes_created_by_db_triggers
 
   delegate :auto_resolve_duration, to: :account
 
@@ -170,18 +192,6 @@ class Conversation < ApplicationRecord
     unread_messages.where(account_id: account_id).incoming.last(10)
   end
 
-  def push_event_data
-    Conversations::EventDataPresenter.new(self).push_data
-  end
-
-  def lock_event_data
-    Conversations::EventDataPresenter.new(self).lock_data
-  end
-
-  def webhook_data
-    Conversations::EventDataPresenter.new(self).push_data
-  end
-
   def cached_label_list_array
     (cached_label_list || '').split(',').map(&:strip)
   end
@@ -206,12 +216,52 @@ class Conversation < ApplicationRecord
     "#{ENV.fetch('FRONTEND_URL', nil)}/survey/responses/#{uuid}"
   end
 
+  def draft_message_key
+    format(Redis::Alfred::CONVERSATION_DRAFT_MESSAGE, conversation_id: display_id, account_id: account.id)
+  end
+
+  def clear_draft_message
+    return unless Redis::Alfred.exists?(draft_message_key)
+
+    Redis::Alfred.delete(draft_message_key)
+  end
+
+  def send_with_quoted_thread?
+    custom_attributes['send_quoted_thread']
+  end
+
+  def dispatch_conversation_updated_event(previous_changes = nil)
+    dispatcher_dispatch(CONVERSATION_UPDATED, previous_changes)
+  end
+
+  def auto_assign_to_latest_agent
+    return if assignee_id.present?
+    return if latest_agent.blank?
+
+    update_column(:assignee_id, latest_agent.id)
+  end
+
+  def latest_agent
+    messages.outgoing.where.not(sender_id: nil).last&.sender
+  end
+
   private
 
   def execute_after_update_commit_callbacks
     notify_status_change
     create_activity
     notify_conversation_updation
+    send_csat_survey_email
+  end
+
+  def send_csat_survey_email
+    return unless saved_change_to_status? && resolved?
+    return unless inbox.email?
+    return if csat_survey_responses.exists?
+    return if inbox.send_csat_on_all_reply?
+    return if Digitaltolk::MailHelper.csat_disabled?(messages.incoming.last)
+
+    CsatSurveyWorker.perform_in(5.seconds, id)
   end
 
   def ensure_snooze_until_reset
@@ -226,7 +276,9 @@ class Conversation < ApplicationRecord
     self.additional_attributes = {} unless additional_attributes.is_a?(Hash)
   end
 
-  def mark_conversation_pending_if_bot
+  def determine_conversation_status
+    self.status = :resolved and return if contact.blocked?
+
     # Message template hooks aren't executed for conversations from campaigns
     # So making these conversations open for agent visibility
     return if campaign.present?
@@ -242,13 +294,17 @@ class Conversation < ApplicationRecord
   def notify_conversation_updation
     return unless previous_changes.keys.present? && allowed_keys?
 
-    dispatcher_dispatch(CONVERSATION_UPDATED, previous_changes)
+    dispatch_conversation_updated_event(previous_changes)
+  end
+
+  def list_of_keys
+    %w[team_id assignee_id status snoozed_until custom_attributes label_list waiting_since first_reply_created_at
+       priority]
   end
 
   def allowed_keys?
     (
-      previous_changes.keys.intersect?(%w[team_id assignee_id status snoozed_until custom_attributes label_list waiting_since first_reply_created_at
-                                          priority]) ||
+      previous_changes.keys.intersect?(list_of_keys) ||
       (previous_changes['additional_attributes'].present? && previous_changes['additional_attributes'][1].keys.intersect?(%w[conversation_language]))
     )
   end
@@ -257,8 +313,13 @@ class Conversation < ApplicationRecord
     assignee_id.present? && Current.user&.id == assignee_id
   end
 
-  def set_display_id
-    reload
+  def load_attributes_created_by_db_triggers
+    # Display id is set via a trigger in the database
+    # So we need to specifically fetch it after the record is created
+    # We can't use reload because it will clear the previous changes, which we need for the dispatcher
+    obj_from_db = self.class.find(id)
+    self[:display_id] = obj_from_db[:display_id]
+    self[:uuid] = obj_from_db[:uuid]
   end
 
   def notify_status_change
@@ -309,5 +370,5 @@ class Conversation < ApplicationRecord
   end
 end
 
-Conversation.include_mod_with('EnterpriseConversationConcern')
-Conversation.include_mod_with('SentimentAnalysisHelper')
+Conversation.include_mod_with('Concerns::Conversation')
+Conversation.prepend_mod_with('Conversation')

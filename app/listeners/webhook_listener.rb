@@ -25,7 +25,6 @@ class WebhookListener < BaseListener
   def message_created(event)
     message = extract_message_and_account(event)[0]
     inbox = message.inbox
-
     return unless message.webhook_sendable?
 
     payload = message.webhook_data.merge(event: __method__.to_s)
@@ -86,7 +85,7 @@ class WebhookListener < BaseListener
   private
 
   def deliver_account_webhooks(payload, account)
-    account.webhooks.account_type.each do |webhook|
+    account.webhooks.enabled.account_type.each do |webhook|
       next unless webhook.subscriptions.include?(payload[:event])
 
       WebhookJob.perform_later(webhook.url, payload)

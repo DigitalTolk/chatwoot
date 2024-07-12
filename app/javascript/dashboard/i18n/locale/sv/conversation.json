@@ -64,7 +64,14 @@
       "SNOOZED_UNTIL": "Snoozad till",
       "SNOOZED_UNTIL_TOMORROW": "Snoozad till imorgon",
       "SNOOZED_UNTIL_NEXT_WEEK": "Snoozad till nästa vecka",
-      "SNOOZED_UNTIL_NEXT_REPLY": "Snoozad till nästa svar"
+      "SNOOZED_UNTIL_NEXT_REPLY": "Snoozad till nästa svar",
+      "SLA_STATUS": {
+        "FRT": "FRT {status}",
+        "NRT": "NRT {status}",
+        "RT": "RT {status}",
+        "MISSED": "missed",
+        "DUE": "due"
+      }
     },
     "RESOLVE_DROPDOWN": {
       "MARK_PENDING": "Markera som väntande",
@@ -267,12 +274,14 @@
       "CONVERSATION_LABELS": "Etiketter för konversation",
       "CONVERSATION_INFO": "Conversation Information",
       "CONTACT_ATTRIBUTES": "Contact Attributes",
+      "CONTACT_KIND": "Kontakt",
       "PREVIOUS_CONVERSATION": "Tidigare konversationer",
       "MACROS": "Macros"
     }
   },
   "CONVERSATION_CUSTOM_ATTRIBUTES": {
     "ADD_BUTTON_TEXT": "Create attribute",
+    "NO_RECORDS_FOUND": "Inga attribut hittades",
     "UPDATE": {
       "SUCCESS": "Attribute updated successfully",
       "ERROR": "Unable to update attribute. Please try again later"

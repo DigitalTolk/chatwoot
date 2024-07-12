@@ -89,6 +89,15 @@
           variant="icon"
           @click="showCannedResponseModal"
         />
+        <menu-item
+          v-if="enabledOptions['smart_actions']"
+          :option="{
+            icon: 'star-glitters',
+            label: $t('CONVERSATION.CONTEXT_MENU.SMART_ACTIONS'),
+          }"
+          variant="icon"
+          @click="openSmartAction"
+        />
         <hr v-if="enabledOptions['delete']" />
         <menu-item
           v-if="enabledOptions['delete']"
@@ -106,7 +115,6 @@
 <script>
 import alertMixin from 'shared/mixins/alertMixin';
 import { mapGetters } from 'vuex';
-import { mixin as clickaway } from 'vue-clickaway';
 import messageFormatterMixin from 'shared/mixins/messageFormatterMixin';
 import AddCannedModal from 'dashboard/routes/dashboard/settings/canned/AddCanned.vue';
 import { copyTextToClipboard } from 'shared/helpers/clipboard';
@@ -124,7 +132,7 @@ export default {
     TranslateModal,
     MenuItem,
   },
-  mixins: [alertMixin, clickaway, messageFormatterMixin],
+  mixins: [alertMixin, messageFormatterMixin],
   props: {
     message: {
       type: Object,
@@ -191,6 +199,16 @@ export default {
       await copyTextToClipboard(this.plainTextContent);
       this.showAlert(this.$t('CONTACT_PANEL.COPY_SUCCESSFUL'));
       this.handleClose();
+    },
+    openSmartAction() {
+      const conversationId = this.conversationId;
+      const messageId = this.messageId;
+      this.$store.dispatch('getSmartActions', conversationId);
+      this.$store.dispatch('setSmartActionsContext', {
+        conversationId,
+        messageId,
+      });
+      this.$store.dispatch('showSmartActions', true);
     },
     showCannedResponseModal() {
       this.$track(ACCOUNT_EVENTS.ADDED_TO_CANNED_RESPONSE);

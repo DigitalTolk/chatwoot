@@ -4,9 +4,16 @@
       :show-agents-filter="true"
       :show-inbox-filter="true"
       :show-rating-filter="true"
+      :show-labels-filter="true"
       :show-team-filter="isTeamsEnabled"
       :show-business-hours-switch="false"
+      :show-question-filter="true"
       @filter-change="onFilterChange"
+      :multiple-labels="true"
+      :multiple-teams="true"
+      :multiple-inboxes="true"
+      :multiple-ratings="true"
+      :multiple-questions="true"
     />
     <woot-button
       color-scheme="success"
@@ -17,7 +24,16 @@
       {{ $t('CSAT_REPORTS.DOWNLOAD') }}
     </woot-button>
     <csat-metrics :filters="requestPayload" />
-    <csat-table :page-index="pageIndex" @page-change="onPageNumberChange" />
+    <div>
+      <input v-model="groudByQuestions" type="checkbox" :value="true" />
+      <label>Group by questions</label>
+    </div>
+    <csat-question-group v-if="groudByQuestions" />
+    <csat-table
+      v-else
+      :page-index="pageIndex"
+      @page-change="onPageNumberChange"
+    />
   </div>
 </template>
 <script>
@@ -29,6 +45,7 @@ import { REPORTS_EVENTS } from '../../../../helper/AnalyticsHelper/events';
 import { mapGetters } from 'vuex';
 import { FEATURE_FLAGS } from '../../../../featureFlags';
 import alertMixin from '../../../../../shared/mixins/alertMixin';
+import CsatQuestionGroup from './components/CsatQuestionGroup.vue';
 
 export default {
   name: 'CsatResponses',
@@ -36,6 +53,7 @@ export default {
     CsatMetrics,
     CsatTable,
     ReportFilterSelector,
+    CsatQuestionGroup,
   },
   mixins: [alertMixin],
   data() {
@@ -44,9 +62,12 @@ export default {
       from: 0,
       to: 0,
       userIds: [],
-      inbox: null,
-      team: null,
-      rating: null,
+      inbox: [],
+      team: [],
+      rating: [],
+      label: [],
+      question: [],
+      groudByQuestions: false,
     };
   },
   computed: {
@@ -62,6 +83,8 @@ export default {
         inbox_id: this.inbox,
         team_id: this.team,
         rating: this.rating,
+        label: this.label,
+        question: this.question,
       };
     },
     isTeamsEnabled() {
@@ -75,6 +98,7 @@ export default {
     getAllData() {
       try {
         this.$store.dispatch('csat/getMetrics', this.requestPayload);
+        this.$store.dispatch('csat/getQuestions', this.requestPayload);
         this.getResponses();
       } catch {
         this.showAlert(this.$t('REPORT.DATA_FETCHING_FAILED'));
@@ -108,6 +132,8 @@ export default {
       selectedInbox,
       selectedTeam,
       selectedRating,
+      selectedLabel,
+      selectedQuestion,
     }) {
       // do not track filter change on inital load
       if (this.from !== 0 && this.to !== 0) {
@@ -119,11 +145,12 @@ export default {
 
       this.from = from;
       this.to = to;
-      this.userIds = selectedAgents.map(el => el.id);
-      this.inbox = selectedInbox?.id;
-      this.team = selectedTeam?.id;
-      this.rating = selectedRating?.value;
-
+      this.userIds = selectedAgents && selectedAgents.map(el => el.id);
+      this.inbox = selectedInbox &&selectedInbox.map(el => el.id);
+      this.team = selectedTeam && selectedTeam.map(el => el.id);
+      this.rating = selectedRating && selectedRating.map(el => el.value);
+      this.label =  selectedLabel && selectedLabel.map(el => el.title);
+      this.question = selectedQuestion && selectedQuestion.map(el => el.id);
       this.getAllData();
     },
   },

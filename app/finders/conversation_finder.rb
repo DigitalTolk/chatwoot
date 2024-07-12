@@ -38,7 +38,7 @@ class ConversationFinder
   def perform
     set_up
 
-    mine_count, unassigned_count, all_count, = set_count_for_all_conversations
+    mine_count, unassigned_count, all_count, all_inbox_open_count, my_teams_open_count, = set_count_for_all_conversations
     assigned_count = all_count - unassigned_count
 
     filter_by_assignee_type
@@ -49,7 +49,9 @@ class ConversationFinder
         mine_count: mine_count,
         assigned_count: assigned_count,
         unassigned_count: unassigned_count,
-        all_count: all_count
+        all_count: all_count,
+        all_inbox_open_count: all_inbox_open_count,
+        my_teams_open_count: my_teams_open_count
       }
     }
   end
@@ -112,6 +114,8 @@ class ConversationFinder
       @conversations = current_user.participating_conversations.where(account_id: current_account.id)
     when 'unattended'
       @conversations = @conversations.unattended
+    when 'recently_resolved'
+      @conversations = current_account.conversations.resolved.where(created_at: (7.days.ago..Date.current)).order(created_at: :desc)
     end
     @conversations
   end
@@ -155,7 +159,9 @@ class ConversationFinder
     [
       @conversations.assigned_to(current_user).count,
       @conversations.unassigned.count,
-      @conversations.count
+      @conversations.count,
+      @current_account.conversations.open.group(:inbox_id).count,
+      Conversation.open.where(team_id: @current_user.teams.pluck(:id)).group(:team_id).count
     ]
   end
 
@@ -163,10 +169,14 @@ class ConversationFinder
     params[:page] || 1
   end
 
-  def conversations
-    @conversations = @conversations.includes(
+  def conversations_base_query
+    @conversations.includes(
       :taggings, :inbox, { assignee: { avatar_attachment: [:blob] } }, { contact: { avatar_attachment: [:blob] } }, :team, :contact_inbox
     )
+  end
+
+  def conversations
+    @conversations = conversations_base_query
 
     sort_by, sort_order = SORT_OPTIONS[params[:sort_by]] || SORT_OPTIONS['last_activity_at_desc']
     @conversations = @conversations.send(sort_by, sort_order)
@@ -178,3 +188,4 @@ class ConversationFinder
     end
   end
 end
+ConversationFinder.prepend_mod_with('ConversationFinder')

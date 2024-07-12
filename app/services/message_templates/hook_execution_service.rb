@@ -12,6 +12,7 @@ class MessageTemplates::HookExecutionService
 
   delegate :inbox, :conversation, to: :message
   delegate :contact, to: :conversation
+  delegate :csat_template, to: :inbox
 
   def trigger_templates
     ::MessageTemplates::Template::OutOfOffice.new(conversation: conversation).perform if should_send_out_of_office_message?
@@ -54,10 +55,12 @@ class MessageTemplates::HookExecutionService
   end
 
   def csat_enabled_conversation?
-    return false unless conversation.resolved?
+    return false unless conversation.resolved? || ((message.outgoing? || message.input_csat?) && inbox.send_csat_on_all_reply?)
+
     # should not sent since the link will be public
     return false if conversation.tweet?
     return false unless inbox.csat_survey_enabled?
+    return false if Digitaltolk::MailHelper.csat_disabled?(message)
 
     true
   end
@@ -65,8 +68,17 @@ class MessageTemplates::HookExecutionService
   def should_send_csat_survey?
     return unless csat_enabled_conversation?
 
-    # only send CSAT once in a conversation
-    return if conversation.messages.where(content_type: :input_csat).present?
+    if inbox.csat_template_enabled?
+      last_csat_reached = conversation.messages.csat.count >= csat_template.questions_count
+      if inbox.email?
+        return if last_csat_reached
+      elsif last_csat_reached || conversation.messages.unanswered_csat.exists?
+        return
+      end
+    elsif conversation.messages.csat.present?
+      return
+      # only send CSAT once in a conversation
+    end
 
     true
   end

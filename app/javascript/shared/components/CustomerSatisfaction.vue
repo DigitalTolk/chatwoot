@@ -4,6 +4,23 @@
     :class="$dm('bg-white', 'dark:bg-slate-700')"
     :style="{ borderColor: widgetColor }"
   >
+    <div
+      v-if="isRatingSubmitted"
+      class="text-green-700 text-xs text-center csat-answered"
+    >
+      <div class="d-flex">
+        <fluent-icon
+          class="text-green-700 csat-answered-icon"
+          icon="checkmark-circle"
+          type="solid"
+          size="12"
+        />
+        Answered
+        <span>{{ answeredCsatCount }}</span>
+        /
+        <span>{{ submittedCsatCount }}</span>
+      </div>
+    </div>
     <h6 class="title" :class="$dm('text-slate-900', 'dark:text-slate-50')">
       {{ title }}
     </h6>
@@ -68,6 +85,10 @@ export default {
       type: Number,
       required: true,
     },
+    message: {
+      type: String,
+      default: '',
+    },
   },
   data() {
     return {
@@ -76,10 +97,18 @@ export default {
       selectedRating: null,
       isUpdating: false,
       feedback: '',
+      csatTemplateQuestionId: '',
     };
   },
   computed: {
-    ...mapGetters({ widgetColor: 'appConfig/getWidgetColor' }),
+    ...mapGetters({
+      widgetColor: 'appConfig/getWidgetColor',
+      csatCount: 'conversation/getTotalCsat',
+      answeredCsatCount: 'conversation/getTotalAnsweredCsat',
+      submittedCsatCount: 'conversation/getTotalSubmittedCsat',
+      csatTemplateEnabled: 'conversation/getCsatTemplateStatus',
+    }),
+
     isRatingSubmitted() {
       return this.messageContentAttributes?.csat_survey_response?.rating;
     },
@@ -98,20 +127,21 @@ export default {
       return getContrastingTextColor(this.widgetColor);
     },
     title() {
-      return this.isRatingSubmitted
-        ? this.$t('CSAT.SUBMITTED_TITLE')
-        : this.$t('CSAT.TITLE');
+      return this.csatMessage();
     },
   },
 
-  mounted() {
+  async mounted() {
     if (this.isRatingSubmitted) {
       const {
-        csat_survey_response: { rating, feedback_message },
+        csat_survey_response: { csat_template_question_id, rating, feedback_message },
       } = this.messageContentAttributes;
       this.selectedRating = rating;
       this.feedback = feedback_message;
+      this.csatTemplateQuestionId = csat_template_question_id;
+      this.$store.commit('conversation/incrementAnsweredCsat');
     }
+    this.$store.commit('conversation/incrementSubmittedCsat');
   },
 
   methods: {
@@ -135,6 +165,7 @@ export default {
           },
           messageId: this.messageId,
         });
+        this.$store.commit('conversation/incrementAnsweredCsat');
       } catch (error) {
         // Ignore error
       } finally {
@@ -144,6 +175,9 @@ export default {
     selectRating(rating) {
       this.selectedRating = rating.value;
       this.onSubmit();
+    },
+    csatMessage() {
+      return this.csatTemplateEnabled ? this.message : this.$t('CSAT.TITLE');
     },
   },
 };
@@ -238,5 +272,12 @@ export default {
   .customer-satisfaction .feedback-form input {
     border-top: 1px solid var(--b-500);
   }
+}
+
+.csat-answered-icon {
+  display: inline;
+}
+.csat-answered {
+  margin-top: 3px;
 }
 </style>

@@ -6,6 +6,8 @@ const state = {
   mineCount: 0,
   unAssignedCount: 0,
   allCount: 0,
+  allInboxOpenCount: 0,
+  myTeamsOpenCount: 0,
 };
 
 export const getters = {
@@ -36,11 +38,15 @@ export const mutations = {
       mine_count: mineCount,
       unassigned_count: unAssignedCount,
       all_count: allCount,
+      all_inbox_open_count: allInboxOpenCount,
+      my_teams_open_count: myTeamsOpenCount
     } = {}
   ) {
     Vue.set($state, 'mineCount', mineCount);
     Vue.set($state, 'allCount', allCount);
     Vue.set($state, 'unAssignedCount', unAssignedCount);
+    Vue.set($state, 'allInboxOpenCount', allInboxOpenCount);
+    Vue.set($state, 'myTeamsOpenCount', myTeamsOpenCount);
   },
 };
 

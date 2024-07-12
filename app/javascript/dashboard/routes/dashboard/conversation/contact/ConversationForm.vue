@@ -1,7 +1,10 @@
 <template>
   <form class="conversation--form w-full" @submit.prevent="onFormSubmit">
-    <div v-if="showNoInboxAlert" class="callout warning">
-      <p>
+    <div
+      v-if="showNoInboxAlert"
+      class="relative mx-0 mt-0 mb-2.5 p-2 rounded-none text-sm border border-solid border-yellow-500 dark:border-yellow-700 bg-yellow-200/60 dark:bg-yellow-200/20 text-slate-700 dark:text-yellow-400"
+    >
+      <p class="mb-0">
         {{ $t('NEW_CONVERSATION.NO_INBOX') }}
       </p>
     </div>
@@ -171,11 +174,7 @@
               :multiple="true"
               :drop="true"
               :drop-directory="false"
-              :data="{
-                direct_upload_url: '/rails/active_storage/direct_uploads',
-                direct_upload: true,
-              }"
-              @input-file="onFileUpload"
+              @input-file="onIndirectFileUpload"
             >
               <woot-button
                 class-names="button--upload"
@@ -226,7 +225,7 @@
         class="flex top-0 bottom-0 z-30 gap-2 right-0 left-0 items-center justify-center flex-col absolute w-full h-full bg-white/80 dark:bg-slate-700/80"
       >
         <fluent-icon icon="cloud-backup" size="40" />
-        <h4 class="page-sub-title text-slate-600 dark:text-slate-200">
+        <h4 class="text-2xl break-words text-slate-600 dark:text-slate-200">
           {{ $t('CONVERSATION.REPLYBOX.DRAG_DROP') }}
         </h4>
       </div>
@@ -445,11 +444,7 @@ export default {
     },
     setAttachmentPayload(payload) {
       this.attachedFiles.forEach(attachment => {
-        if (this.globalConfig.directUploadsEnabled) {
-          payload.files.push(attachment.blobSignedId);
-        } else {
-          payload.files.push(attachment.resource.file);
-        }
+        payload.files.push(attachment.resource.file);
       });
     },
     attachFile({ blob, file }) {

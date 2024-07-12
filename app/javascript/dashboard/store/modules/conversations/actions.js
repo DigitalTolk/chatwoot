@@ -2,6 +2,7 @@ import Vue from 'vue';
 import types from '../../mutation-types';
 import ConversationApi from '../../../api/inbox/conversation';
 import MessageApi from '../../../api/inbox/message';
+import SmartActionApi from '../../../api/inbox/smart_action';
 import { MESSAGE_STATUS, MESSAGE_TYPE } from 'shared/constants/messages';
 import { createPendingMessage } from 'dashboard/helper/commons';
 import {
@@ -250,6 +251,13 @@ const actions = {
     }
   },
 
+  closeConversation: async (_, { conversationId, closed }) => {
+    await ConversationApi.close({
+      conversationId,
+      closed,
+    });
+  },
+
   createPendingMessageAndSend: async ({ dispatch }, data) => {
     const pendingMessage = createPendingMessage(data);
     dispatch('sendMessageWithData', pendingMessage);
@@ -462,10 +470,59 @@ const actions = {
     }
   },
 
+  assignContactKind: async (_, { conversationId, contactKind }) => {
+    try {
+      return await ConversationApi.assignContactKind({
+        conversationId,
+        contactKind,
+      });
+    } catch (error) {
+      throw new Error(error);
+    }
+  },
+
+  changeContact: async (_, { conversationId, email }) => {
+    try {
+      return await ConversationApi.changeContact({
+        conversationId,
+        email,
+      });
+    } catch (error) {
+      throw new Error(error);
+    }
+  },
+
   setCurrentChatPriority({ commit }, { priority, conversationId }) {
     commit(types.ASSIGN_PRIORITY, { priority, conversationId });
   },
 
+  setCurrentChatContactKind({ commit }, { contactKind, conversationId }) {
+    commit(types.ASSIGN_CONTACT_KIND, { contactKind, conversationId });
+  },
+
+  // TODO: move to smart action module
+  getSmartActions: async ({ commit }, conversationId) => {
+    const {
+      data: { payload },
+    } = await SmartActionApi.getSmartActions(conversationId);
+    commit(types.SET_SMART_ACTIONS, payload);
+  },
+
+  addSmartAction: async({ commit}, data) => {
+    commit(types.ADD_SMART_ACTION, data);
+  },
+
+  showSmartActions: ({ commit }, value) => {
+    commit(types.DISPLAY_SMART_ACTIONS, value);
+  },
+
+  setSmartActionsContext: ({ commit }, { conversationId, messageId }) => {
+    commit(types.SET_SMART_ACTIONS_CONTEXT, { conversationId, messageId });
+  },
+
+  askCopilot: async (_, { conversationId }) => {
+    return SmartActionApi.askCopilot(conversationId);
+  },
   ...messageReadActions,
   ...messageTranslateActions,
 };

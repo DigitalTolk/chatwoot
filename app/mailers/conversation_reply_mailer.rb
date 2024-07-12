@@ -31,9 +31,12 @@ class ConversationReplyMailer < ApplicationMailer
 
   def email_reply(message)
     return unless smtp_config_set_or_development?
+    return if message.blank?
 
     init_conversation_attributes(message.conversation)
     @message = message
+    @previous_message = @conversation.messages.chat.where.not(id: message).last if @conversation.send_with_quoted_thread?
+    @attachments = message.attachments
     reply_mail_object = prepare_mail(true)
     message.update(source_id: reply_mail_object.message_id)
   end
@@ -53,6 +56,16 @@ class ConversationReplyMailer < ApplicationMailer
            from: from_email_with_name,
            subject: "[##{@conversation.display_id}] #{I18n.t('conversations.reply.transcript_subject')}"
          })
+  end
+
+  def csat_survey(conversation)
+    return unless smtp_config_set_or_development?
+
+    init_conversation_attributes(conversation)
+    @csat_messages = conversation.messages.csat
+    @message = conversation.messages.last
+    reply_mail_object = prepare_mail(true)
+    @message.update(source_id: reply_mail_object.message_id)
   end
 
   private
@@ -146,17 +159,20 @@ class ConversationReplyMailer < ApplicationMailer
   end
 
   def custom_message_id
-    last_message = @message || @messages&.last
+    last_message = @message || @messages&.reject(&:customized)&.last
+
+    return if last_message.blank?
+    return last_message.source_id if last_message&.source_id.present?
 
     "<conversation/#{@conversation.uuid}/messages/#{last_message&.id}@#{channel_email_domain}>"
   end
 
   def in_reply_to_email
-    conversation_reply_email_id || "<account/#{@account.id}/conversation/#{@conversation.uuid}@#{channel_email_domain}>"
+    conversation_reply_email_id || custom_message_id || "<account/#{@account.id}/conversation/#{@conversation.uuid}@#{channel_email_domain}>"
   end
 
   def conversation_reply_email_id
-    content_attributes = @conversation.messages.incoming.last&.content_attributes
+    content_attributes = @conversation.messages.incoming_email.incoming.last&.content_attributes
 
     if content_attributes && content_attributes['email'] && content_attributes['email']['message_id']
       return "<#{content_attributes['email']['message_id']}>"

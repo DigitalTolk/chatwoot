@@ -5,14 +5,21 @@ class Api::V1::Accounts::CsatSurveyResponsesController < Api::V1::Accounts::Base
   RESULTS_PER_PAGE = 25
 
   before_action :check_authorization
-  before_action :set_csat_survey_responses, only: [:index, :metrics, :download]
+  before_action :set_csat_survey_responses, only: [:index, :metrics, :download, :questions]
   before_action :set_current_page, only: [:index]
   before_action :set_current_page_surveys, only: [:index]
   before_action :set_total_sent_messages_count, only: [:metrics]
 
   sort_on :created_at, type: :datetime
 
-  def index; end
+  def index
+    if params[:export_as_parquet]
+      file_name = "csat_surveys_#{Time.now.to_i}.parquet"
+      Digitaltolk::StoreSurveyResponsesParquetJob.perform_later(@csat_survey_responses.pluck(:id), file_name)
+
+      render json: { file_url: Digitaltolk::SurveyResponsesParquetService.new([], file_name).perform }.to_json and return
+    end
+  end
 
   def metrics
     @total_count = @csat_survey_responses.count
@@ -23,6 +30,11 @@ class Api::V1::Accounts::CsatSurveyResponsesController < Api::V1::Accounts::Base
     response.headers['Content-Type'] = 'text/csv'
     response.headers['Content-Disposition'] = 'attachment; filename=csat_report.csv'
     render layout: false, template: 'api/v1/accounts/csat_survey_responses/download', formats: [:csv]
+  end
+
+  def questions
+    @questions = CsatTemplateQuestion.joins(:csat_survey_responses).merge(@csat_survey_responses).reorder('content asc').distinct
+    render json: { questions: @questions }
   end
 
   private
@@ -40,10 +52,12 @@ class Api::V1::Accounts::CsatSurveyResponsesController < Api::V1::Accounts::Base
                                                  .filter_by_inbox_id(params[:inbox_id])
                                                  .filter_by_team_id(params[:team_id])
                                                  .filter_by_rating(params[:rating])
+                                                 .filter_by_label(params[:label])
+                                                 .filter_by_question(params[:question])
   end
 
   def set_current_page_surveys
-    @csat_survey_responses = @csat_survey_responses.page(@current_page).per(RESULTS_PER_PAGE)
+    @csat_survey_responses = @csat_survey_responses.page(@current_page).per(RESULTS_PER_PAGE) if params[:page].present?
   end
 
   def set_current_page

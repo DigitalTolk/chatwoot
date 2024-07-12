@@ -1,9 +1,9 @@
 <template>
-  <div class="flex flex-col md:flex-row">
-    <div class="flex items-center w-full flex-col md:flex-row">
+  <div class="flex flex-col md:flex-row justify-between mb-4">
+    <div class="md:grid flex flex-col filter-container gap-3 w-full">
       <div
         v-if="type === 'agent'"
-        class="md:w-[240px] w-full multiselect-wrap--small"
+        class="multiselect-wrap--small"
       >
         <p class="text-xs mb-2 font-medium">
           {{ $t('AGENT_REPORTS.FILTER_DROPDOWN_LABEL') }}
@@ -19,7 +19,7 @@
           @input="changeFilterSelection"
         >
           <template slot="singleLabel" slot-scope="props">
-            <div class="reports-option__wrap">
+            <div class="flex items-center gap-2">
               <thumbnail
                 :src="props.option.thumbnail"
                 :status="props.option.availability_status"
@@ -27,28 +27,30 @@
                 size="22px"
               />
               <span class="reports-option__desc">
-                <span class="reports-option__title">{{
+                <span class="my-0 text-slate-800 dark:text-slate-75">{{
                   props.option.name
                 }}</span>
               </span>
             </div>
           </template>
           <template slot="option" slot-scope="props">
-            <div class="reports-option__wrap">
+            <div class="flex items-center gap-2">
               <thumbnail
                 :src="props.option.thumbnail"
                 :status="props.option.availability_status"
                 :username="props.option.name"
                 size="22px"
               />
-              <p class="reports-option__title">{{ props.option.name }}</p>
+              <p class="my-0 text-slate-800 dark:text-slate-75">
+                {{ props.option.name }}
+              </p>
             </div>
           </template>
         </multiselect>
       </div>
       <div
         v-else-if="type === 'label'"
-        class="md:w-[240px] w-full multiselect-wrap--small"
+        class="multiselect-wrap--small"
       >
         <p class="text-xs mb-2 font-medium">
           {{ $t('LABEL_REPORTS.FILTER_DROPDOWN_LABEL') }}
@@ -64,26 +66,26 @@
           @input="changeFilterSelection"
         >
           <template slot="singleLabel" slot-scope="props">
-            <div class="reports-option__wrap">
+            <div class="flex gap-2 items-center">
               <div
                 :style="{ backgroundColor: props.option.color }"
-                class="reports-option__rounded--item"
+                class="rounded-full h-5 w-5"
               />
               <span class="reports-option__desc">
-                <span class="reports-option__title">
+                <span class="my-0 text-slate-800 dark:text-slate-75">
                   {{ props.option.title }}
                 </span>
               </span>
             </div>
           </template>
           <template slot="option" slot-scope="props">
-            <div class="reports-option__wrap">
+            <div class="flex items-center gap-2">
               <div
                 :style="{ backgroundColor: props.option.color }"
-                class="reports-option__rounded--item reports-option__item reports-option__label--swatch"
+                class="rounded-full h-5 w-5 flex-shrink-0 border border-solid border-slate-100 dark:border-slate-800"
               />
               <span class="reports-option__desc">
-                <span class="reports-option__title">
+                <span class="my-0 text-slate-800 dark:text-slate-75">
                   {{ props.option.title }}
                 </span>
               </span>
@@ -91,7 +93,7 @@
           </template>
         </multiselect>
       </div>
-      <div v-else class="md:w-[240px] w-full multiselect-wrap--small">
+      <div v-else class="multiselect-wrap--small">
         <p class="text-xs mb-2 font-medium">
           <template v-if="type === 'inbox'">
             {{ $t('INBOX_REPORTS.FILTER_DROPDOWN_LABEL') }}
@@ -118,7 +120,7 @@
           @input="changeFilterSelection"
         />
       </div>
-      <div class="mx-1 md:w-[240px] w-full multiselect-wrap--small">
+      <div class=" multiselect-wrap--small">
         <p class="text-xs mb-2 font-medium">
           {{ $t('REPORT.DURATION_FILTER_LABEL') }}
         </p>
@@ -136,6 +138,51 @@
           @select="changeDateSelection"
         />
       </div>
+      <div 
+        class="multiselect-wrap--small"
+        v-if="showTeamFilter">
+        <p class="text-xs mb-2 font-medium custom-filter-label">
+          &nbsp;
+        </p>
+        <reports-filters-teams
+          @team-filter-selection="handleTeamFilterChange"
+          :multiple="true"
+        />
+      </div>
+
+      <div v-if="showLabelFilter" class="multiselect-wrap--small">
+        <p class="text-xs mb-2 font-medium custom-filter-label">
+          &nbsp;
+        </p>
+        <reports-filters-labels
+          @labels-filter-selection="handleLabelFilterChange"
+          :multiple="true"
+          class="mb-4"
+        />
+      </div>
+
+      <div v-if="showInboxFilter" class="multiselect-wrap--small">
+        <p class="text-xs mb-2 font-medium custom-filter-label">
+          &nbsp;
+        </p>
+        <reports-filters-inboxes
+          @inbox-filter-selection="handleInboxFilterChange"
+          :multiple="true"
+          class="mb-4"
+        />
+      </div>
+
+      <div v-if="showRatingFilter" class="multiselect-wrap--small">
+        <p class="text-xs mb-2 font-medium custom-filter-label">
+          &nbsp;
+        </p>
+        <reports-filters-ratings
+          @rating-filter-selection="handleRatingFilterChange"
+          :multiple="true"
+          class="mb-4"
+        />
+      </div>
+
       <div v-if="isDateRangeSelected" class="">
         <p class="text-xs mb-2 font-medium">
           {{ $t('REPORT.CUSTOM_DATE_RANGE.PLACEHOLDER') }}
@@ -167,7 +214,7 @@
         />
       </div>
     </div>
-    <div class="flex items-center my-2">
+    <div class="flex items-baseline my-2">
       <span class="text-sm mx-2 whitespace-nowrap">
         {{ $t('REPORT.BUSINESS_HOURS') }}
       </span>
@@ -184,6 +231,11 @@ import startOfDay from 'date-fns/startOfDay';
 import subDays from 'date-fns/subDays';
 import Thumbnail from 'dashboard/components/widgets/Thumbnail.vue';
 import WootDateRangePicker from 'dashboard/components/ui/DateRangePicker.vue';
+import ReportsFiltersAgents from './Filters/Agents.vue';
+import ReportsFiltersLabels from './Filters/Labels.vue';
+import ReportsFiltersInboxes from './Filters/Inboxes.vue';
+import ReportsFiltersTeams from './Filters/Teams.vue';
+import ReportsFiltersRatings from './Filters/Ratings.vue';
 
 import { GROUP_BY_FILTER } from '../constants';
 const CUSTOM_DATE_RANGE_ID = 5;
@@ -192,6 +244,11 @@ export default {
   components: {
     WootDateRangePicker,
     Thumbnail,
+    ReportsFiltersAgents,
+    ReportsFiltersLabels,
+    ReportsFiltersInboxes,
+    ReportsFiltersTeams,
+    ReportsFiltersRatings,
   },
   props: {
     filterItemsList: {
@@ -219,6 +276,10 @@ export default {
       customDateRange: [new Date(), new Date()],
       currentSelectedGroupByFilter: null,
       businessHoursSelected: false,
+      selectedLabel: [],
+      selectedTeam: [],
+      selectedInbox: [],
+      selectedRating: [],
     };
   },
   computed: {
@@ -271,6 +332,18 @@ export default {
     notLast7Days() {
       return this.groupBy !== GROUP_BY_FILTER[1].period;
     },
+    showTeamFilter(){
+      return this.type != 'team';
+    },
+    showInboxFilter(){
+      return this.type != 'inbox';
+    },
+    showLabelFilter(){
+      return this.type != 'label';
+    },
+    showRatingFilter(){
+      return this.type != 'rating' && this.type != 'agent';
+    },
   },
   watch: {
     filterItemsList(val) {
@@ -308,6 +381,30 @@ export default {
     changeFilterSelection() {
       this.$emit('filter-change', this.currentSelectedFilter);
     },
+    customFilter(){
+      return {
+        selectedTeam: this.selectedTeam,
+        selectedLabel: this.selectedLabel,
+        selectedInbox: this.selectedInbox,
+        selectedRating: this.selectedRating,
+      }
+    },
+    handleTeamFilterChange(payload){
+      this.selectedTeam = payload && payload.map(team => team.id)
+      this.triggerCustomFilter()
+    },
+    handleLabelFilterChange(payload){
+      this.selectedLabel = payload && payload.map(team => team.title)
+      this.triggerCustomFilter()
+    },
+    handleInboxFilterChange(payload){
+      this.selectedInbox = payload && payload.map(team => team.id)
+      this.triggerCustomFilter()
+    },
+    handleRatingFilterChange(payload){
+      this.selectedRating = payload && payload.map(team => team.value)
+      this.triggerCustomFilter()
+    },
     onChange(value) {
       this.customDateRange = value;
       this.onDateRangeChange();
@@ -315,10 +412,63 @@ export default {
     changeGroupByFilterSelection() {
       this.$emit('group-by-filter-change', this.currentSelectedGroupByFilter);
     },
+    triggerCustomFilter() {
+      this.$emit('custom-filter-change', this.customFilter());
+    }
   },
 };
 </script>
 
-<style lang="scss">
-@import '~dashboard/assets/scss/widgets/_reports';
+<style scoped>
+.filter-container {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+@media (max-width: 767px) {
+  .filter-container .multiselect-wrap--small:nth-child(-n+3) .custom-filter-label {
+    display: block;
+  }
+  .filter-container .multiselect-wrap--small:nth-child(n+3) .custom-filter-label {
+    display: none;
+  }
+  .filter-container .multiselect-wrap--small:nth-child(n+3) .multiselect-wrap--small.mb-4{
+    margin-bottom: 0px !important;
+  }
+}
+
+@media (min-width: 1213px) {
+  .filter-container .multiselect-wrap--small:nth-child(-n+4) .custom-filter-label {
+    display: block;
+  }
+  .filter-container .multiselect-wrap--small:nth-child(n+4) .custom-filter-label {
+    display: none;
+  }
+  .filter-container .multiselect-wrap--small:nth-child(n+4) .multiselect-wrap--small.mb-4{
+    margin-bottom: 0px !important;
+  }
+}
+
+@media (min-width: 1475px) {
+  .filter-container .multiselect-wrap--small:nth-child(-n+5) .custom-filter-label {
+    display: block;
+  }
+  .filter-container .multiselect-wrap--small:nth-child(n+5) .custom-filter-label {
+    display: none;
+  }
+  .filter-container .multiselect-wrap--small:nth-child(n+5) .multiselect-wrap--small.mb-4{
+    margin-bottom: 0px !important;
+  }
+}
+
+@media (min-width: 1737px) {
+  .filter-container .multiselect-wrap--small:nth-child(-n+6) .custom-filter-label {
+    display: block;
+  }
+  .filter-container .multiselect-wrap--small:nth-child(n+6) .custom-filter-label {
+    display: none;
+  }
+  .filter-container .multiselect-wrap--small:nth-child(n+6) .multiselect-wrap--small.mb-4{
+    margin-bottom: 0px !important;
+  }
+}
 </style>

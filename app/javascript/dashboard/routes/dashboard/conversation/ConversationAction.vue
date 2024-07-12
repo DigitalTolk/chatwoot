@@ -72,11 +72,43 @@
         @click="onClickAssignPriority"
       />
     </div>
+    <div class="multiselect-wrap--small">
+      <contact-details-item
+        compact
+        :title="$t('CONVERSATION.CONTACT.CHANGE')"
+      />
+      <div class="flex rounded-lg shadow-sm">
+        <input
+          ref="inputfield"
+          v-model="changeContactEmail"
+          type="email"
+          class="input-group-field"
+          autofocus="true"
+          @keyup.enter="onChangeContact"
+        />
+        <woot-button class="flex-shrink-0 inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-e-md" icon="checkmark" @click="onChangeContact" />
+      </div>
+    </div>
     <contact-details-item
       compact
       :title="$t('CONVERSATION_SIDEBAR.ACCORDION.CONVERSATION_LABELS')"
     />
     <conversation-labels :conversation-id="conversationId" />
+    <div class="multiselect-wrap--small mt-3">
+      <contact-details-item
+        compact
+        :title="$t('CONVERSATION_SIDEBAR.ACCORDION.CONTACT_KIND')"
+      />
+      <multiselect-dropdown 
+        :options="contactKinds" 
+        :selected-item="assignedContactKind"
+        @click="onClickAssignContactKind"
+        track-by="id"
+        label="name"
+        :placeholder="$t('FORMS.MULTISELECT.SELECT')"
+        style="padding-left: 0px"
+      />
+    </div>
   </div>
 </template>
 
@@ -110,6 +142,7 @@ export default {
   },
   data() {
     return {
+      changeContactEmail: '',
       priorityOptions: [
         {
           id: null,
@@ -137,6 +170,32 @@ export default {
           thumbnail: `/assets/images/dashboard/priority/${CONVERSATION_PRIORITY.LOW}.svg`,
         },
       ],
+      contactKinds: [
+        {
+          id: 0,
+          name: "None",
+        },
+        {
+          id: 1,
+          name: "Tolk",
+        },
+        {
+          id: 2,
+          name: "Kund",
+        },
+        {
+          id: 3,
+          name: "Översättare",
+        },
+        {
+          id: 4,
+          name: "Anställd",
+        },
+        {
+          id: 5,
+          name: "Övrigt",
+        },
+      ]
     };
   },
   computed: {
@@ -210,6 +269,41 @@ export default {
           });
       },
     },
+    assignedContactKind: {
+      get() {
+        const selectedOption = this.contactKinds.find(
+          opt => opt.id === this.currentChat.contact_kind
+        );
+
+        return selectedOption || this.contactKinds[0]
+      },
+      set(contactKind){
+        const conversationId = this.currentChat.id;
+        const oldValue = this.currentChat?.contact_kind;
+        const selectedOption = this.contactKinds.find(opt => opt.id === contactKind) || this.contactKinds[0]
+    
+        this.$store.dispatch('setCurrentChatContactKind', {
+          contactKind,
+          conversationId,
+        });
+        this.$store
+          .dispatch('assignContactKind', { conversationId, contactKind })
+          .then(() => {
+            this.$track(CONVERSATION_EVENTS.CHANGE_CONTACT_KIND, {
+              oldValue,
+              newValue: contactKind,
+              from: 'Conversation Sidebar',
+            });
+
+            this.showAlert(
+              this.$t('CONVERSATION.CONTACT.CHANGE_TYPE.SUCCESSFUL', {
+                contactKind: selectedOption.name,
+                conversationId,
+              })
+            );
+          });
+      }
+    },
     showSelfAssign() {
       if (!this.assignedAgent) {
         return true;
@@ -266,6 +360,33 @@ export default {
         this.assignedPriority.id === selectedPriorityItem.id;
 
       this.assignedPriority = isSamePriority ? null : selectedPriorityItem;
+    },
+
+    onClickAssignContactKind(selectedContactKind){
+      const isSameContactKind =
+        this.assignedContactKind &&
+        this.assignedContactKind.id === selectedContactKind.id;
+
+      this.assignedContactKind = isSameContactKind ? null : selectedContactKind.id;
+    },
+
+    onChangeContact() {
+      const email = this.changeContactEmail
+      const conversationId = this.currentChat.id
+      this.$store
+        .dispatch('changeContact', { conversationId, email })
+        .then((result) => {
+          if (result.data && result.data.success) {
+            this.showAlert('Contact changed successfully');
+          } else {
+            this.showAlert('Unable to update contact');
+          }
+        });
+    }
+  },
+  watch: {
+    currentChat(value) {
+      this.changeContactEmail = value.meta.sender.email
     },
   },
 };

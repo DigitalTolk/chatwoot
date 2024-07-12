@@ -14,6 +14,12 @@ class Api::V2::Accounts::ReportsController < Api::V1::Accounts::BaseController
     render json: summary_metrics
   end
 
+  def bot_summary
+    summary = V2::ReportBuilder.new(Current.account, current_summary_params).bot_summary
+    summary[:previous] = V2::ReportBuilder.new(Current.account, previous_summary_params).bot_summary
+    render json: summary
+  end
+
   def agents
     @report_data = generate_agents_report
     generate_csv('agents_report', 'api/v2/accounts/reports/agents')
@@ -48,6 +54,11 @@ class Api::V2::Accounts::ReportsController < Api::V1::Accounts::BaseController
     render json: conversation_metrics
   end
 
+  def bot_metrics
+    bot_metrics = V2::Reports::BotMetricsBuilder.new(Current.account, params).metrics
+    render json: bot_metrics
+  end
+
   private
 
   def generate_csv(filename, template)
@@ -65,7 +76,8 @@ class Api::V2::Accounts::ReportsController < Api::V1::Accounts::BaseController
       type: params[:type].to_sym,
       id: params[:id],
       group_by: params[:group_by],
-      business_hours: ActiveModel::Type::Boolean.new.cast(params[:business_hours])
+      business_hours: ActiveModel::Type::Boolean.new.cast(params[:business_hours]),
+      custom_filter: params[:custom_filter]
     }
   end
 

@@ -4,9 +4,11 @@
 #
 #  id                        :integer          not null, primary key
 #  additional_attributes     :jsonb
+#  auto_reply                :boolean          default(FALSE)
 #  content                   :text
 #  content_attributes        :json
 #  content_type              :integer          default("text"), not null
+#  customized                :boolean          default(FALSE)
 #  external_source_ids       :jsonb
 #  message_type              :integer          not null
 #  private                   :boolean          default(FALSE), not null
@@ -24,6 +26,7 @@
 #
 # Indexes
 #
+#  index_messages_on_account_created_type               (account_id,created_at,message_type)
 #  index_messages_on_account_id                         (account_id)
 #  index_messages_on_account_id_and_inbox_id            (account_id,inbox_id)
 #  index_messages_on_additional_attributes_campaign_id  (((additional_attributes -> 'campaign_id'::text))) USING gin
@@ -59,6 +62,7 @@ class Message < ApplicationRecord
   }.to_json.freeze
 
   before_validation :ensure_content_type
+  before_validation :prevent_message_flooding
   before_save :ensure_processed_message_content
   before_save :ensure_in_reply_to
 
@@ -109,6 +113,30 @@ class Message < ApplicationRecord
   scope :chat, -> { where.not(message_type: :activity).where(private: false) }
   scope :non_activity_messages, -> { where.not(message_type: :activity).reorder('id desc') }
   scope :today, -> { where("date_trunc('day', created_at) = ?", Date.current) }
+  scope :csat, -> { where(content_type: :input_csat) }
+  scope :unanswered_csat, lambda {
+    csat
+      .includes(:csat_survey_response)
+      .where(csat_survey_responses: { id: nil })
+  }
+
+  scope :filter_by_created_at, ->(range) { where(created_at: range) if range.present? }
+
+  scope :filter_by_label, lambda { |selected_label|
+    joins(:conversation).where(conversations: { cached_label_list: selected_label }) if selected_label.present?
+  }
+
+  scope :filter_by_team, lambda { |selected_team|
+    joins(:conversation).where(conversations: { team_id: selected_team }) if selected_team.present?
+  }
+
+  scope :filter_by_inbox, lambda { |selected_inbox|
+    where(inbox_id: selected_inbox) if selected_inbox.present?
+  }
+
+  scope :filter_by_rating, lambda { |selected_rating|
+    where(conversation_id: ::CsatSurveyResponse.where(rating: selected_rating).select(:conversation_id)) if selected_rating.present?
+  }
 
   # TODO: Get rid of default scope
   # https://stackoverflow.com/a/1834250/939299
@@ -122,7 +150,10 @@ class Message < ApplicationRecord
 
   has_many :attachments, dependent: :destroy, autosave: true, before_add: :validate_attachments_limit
   has_one :csat_survey_response, dependent: :destroy_async
+  has_one :message_csat_template_question, dependent: :destroy_async
+  has_one :csat_template_question, through: :message_csat_template_question
   has_many :notifications, as: :primary_actor, dependent: :destroy_async
+  has_many :smart_actions, dependent: :destroy_async
 
   after_create_commit :execute_after_create_commit_callbacks
 
@@ -192,13 +223,28 @@ class Message < ApplicationRecord
     # move this to a presenter
     return self[:content] if !input_csat? || inbox.web_widget?
 
-    I18n.t('conversations.survey.response', link: "#{ENV.fetch('FRONTEND_URL', nil)}/survey/responses/#{conversation.uuid}")
+    if inbox.email? && inbox.csat_template_enabled?
+      self[:content]
+    else
+      I18n.t('conversations.survey.response', link: csat_link)
+    end
+  end
+
+  def csat_link
+    "#{ENV.fetch('FRONTEND_URL', nil)}/survey/responses/#{conversation.uuid}"
+  end
+
+  def csat_link_shorten
+    return '' if csat_link.blank?
+
+    "#{csat_link[0, 17]}...#{csat_link[-17, 17]}"
   end
 
   def email_notifiable_message?
     return false if private?
     return false if %w[outgoing template].exclude?(message_type)
     return false if template? && %w[input_csat text].exclude?(content_type)
+    return false if input_csat? && inbox.csat_template_enabled?
 
     true
   end
@@ -210,6 +256,19 @@ class Message < ApplicationRecord
                                 .where.not(sender_type: 'AgentBot')
                                 .where.not(private: true)
                                 .where("(additional_attributes->'campaign_id') is null").count > 1
+
+    true
+  end
+
+  def should_send_csat_at_reply?
+    return false unless outgoing? && human_response? && !private?
+
+    can_send_csat_at_reply?
+  end
+
+  def can_send_csat_at_reply?
+    return false unless inbox.csat_template_enabled?
+    return false unless inbox.send_csat_on_all_reply?
 
     true
   end
@@ -226,6 +285,18 @@ class Message < ApplicationRecord
   end
 
   private
+
+  def prevent_message_flooding
+    # Added this to cover the validation specs in messages
+    # We can revisit and see if we can remove this later
+    return if conversation.blank?
+
+    # there are cases where automations can result in message loops, we need to prevent such cases.
+    if conversation.messages.where('created_at >= ?', 1.minute.ago).count >= Limits.conversation_message_per_minute_limit
+      Rails.logger.error "Too many message: Account Id - #{account_id} : Conversation id - #{conversation_id}"
+      errors.add(:base, 'Too many messages')
+    end
+  end
 
   def ensure_processed_message_content
     text_content_quoted = content_attributes.dig(:email, :text_content, :quoted)
@@ -256,11 +327,15 @@ class Message < ApplicationRecord
     reopen_conversation
     notify_via_mail
     set_conversation_activity
-    update_message_sentiments
     dispatch_create_events
     send_reply
     execute_message_template_hooks
     update_contact_activity
+    auto_assign_agent
+  end
+
+  def auto_assign_agent
+    conversation.auto_assign_to_latest_agent
   end
 
   def update_contact_activity
@@ -316,6 +391,7 @@ class Message < ApplicationRecord
   def reopen_conversation
     return if conversation.muted?
     return unless incoming?
+    return if Digitaltolk::MailHelper.auto_reply?(self)
 
     conversation.open! if conversation.snoozed?
 
@@ -392,10 +468,6 @@ class Message < ApplicationRecord
     # rubocop:disable Rails/SkipsModelValidations
     conversation.update_columns(last_activity_at: created_at)
     # rubocop:enable Rails/SkipsModelValidations
-  end
-
-  def update_message_sentiments
-    # override in the enterprise ::Enterprise::SentimentAnalysisJob.perform_later(self)
   end
 end
 

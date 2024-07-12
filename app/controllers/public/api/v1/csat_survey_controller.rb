@@ -1,6 +1,6 @@
 class Public::Api::V1::CsatSurveyController < PublicController
   before_action :set_conversation
-  before_action :set_message
+  before_action :message
 
   def show; end
 
@@ -18,12 +18,17 @@ class Public::Api::V1::CsatSurveyController < PublicController
     @conversation = Conversation.find_by!(uuid: params[:id])
   end
 
-  def set_message
-    @message = @conversation.messages.find_by!(content_type: 'input_csat')
+  def message
+    @message = @conversation.messages.find_by(id: message_id) if message_id.present?
+    @message ||= @conversation.messages.find_by!(content_type: 'input_csat')
   end
 
   def message_update_params
     params.permit(message: [{ submitted_values: [:name, :title, :value, { csat_survey_response: [:feedback_message, :rating] }] }])
+  end
+
+  def message_id
+    params[:message_id]
   end
 
   def check_csat_locked

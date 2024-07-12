@@ -48,7 +48,7 @@
       v-on-clickaway="closeDropdown"
       class="dropdown-pane dropdown-pane--open"
     >
-      <woot-dropdown-menu>
+      <woot-dropdown-menu class="mb-0">
         <woot-dropdown-item v-if="!isPending">
           <woot-button
             variant="clear"
@@ -71,6 +71,28 @@
             {{ $t('CONVERSATION.RESOLVE_DROPDOWN.MARK_PENDING') }}
           </woot-button>
         </woot-dropdown-item>
+        <woot-dropdown-item v-if="canCloseConversation">
+          <woot-button
+            variant="clear"
+            color-scheme="secondary"
+            size="small"
+            icon="lock-closed"
+            @click="() => closeConversation()"
+          >
+            {{ $t('CONVERSATION.RESOLVE_DROPDOWN.CLOSE') }}
+          </woot-button>
+        </woot-dropdown-item>
+        <woot-dropdown-item v-if="canUncloseConversation">
+          <woot-button
+            variant="clear"
+            color-scheme="secondary"
+            size="small"
+            icon="lock-shield"
+            @click="() => uncloseConversation()"
+          >
+            {{ $t('CONVERSATION.RESOLVE_DROPDOWN.UNCLOSE') }}
+          </woot-button>
+        </woot-dropdown-item>
       </woot-dropdown-menu>
     </div>
     <woot-modal
@@ -88,19 +110,15 @@
 <script>
 import { getUnixTime } from 'date-fns';
 import { mapGetters } from 'vuex';
-import { mixin as clickaway } from 'vue-clickaway';
 import alertMixin from 'shared/mixins/alertMixin';
 import CustomSnoozeModal from 'dashboard/components/CustomSnoozeModal.vue';
-import eventListenerMixins from 'shared/mixins/eventListenerMixins';
-import {
-  hasPressedAltAndEKey,
-  hasPressedCommandPlusAltAndEKey,
-  hasPressedAltAndMKey,
-} from 'shared/helpers/KeyboardHelpers';
+import keyboardEventListenerMixins from 'shared/mixins/keyboardEventListenerMixins';
 import { findSnoozeTime } from 'dashboard/helper/snoozeHelpers';
 import WootDropdownItem from 'shared/components/ui/dropdown/DropdownItem.vue';
 import WootDropdownMenu from 'shared/components/ui/dropdown/DropdownMenu.vue';
-
+import uiSettingsMixin from 'dashboard/mixins/uiSettings';
+import adminMixin from 'dashboard/mixins/isAdmin';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import wootConstants from 'dashboard/constants/globals';
 import {
   CMD_REOPEN_CONVERSATION,
@@ -114,7 +132,7 @@ export default {
     WootDropdownMenu,
     CustomSnoozeModal,
   },
-  mixins: [clickaway, alertMixin, eventListenerMixins],
+  mixins: [alertMixin, keyboardEventListenerMixins, uiSettingsMixin, adminMixin],
   props: { conversationId: { type: [String, Number], required: true } },
   data() {
     return {
@@ -125,7 +143,11 @@ export default {
     };
   },
   computed: {
-    ...mapGetters({ currentChat: 'getSelectedChat' }),
+    ...mapGetters({ 
+      currentChat: 'getSelectedChat',
+      accountId: 'getCurrentAccountId',
+      isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
+    }),
     isOpen() {
       return this.currentChat.status === wootConstants.STATUS_TYPE.OPEN;
     },
@@ -138,6 +160,15 @@ export default {
     isSnoozed() {
       return this.currentChat.status === wootConstants.STATUS_TYPE.SNOOZED;
     },
+    isClosed(){
+      return this.currentChat.closed;
+    },
+    canCloseConversation() {
+      return this.isAdmin && this.isResolved && !this.isClosed
+    },
+    canUncloseConversation(){
+      return this.isAdmin && this.isResolved && this.isClosed
+    },
     buttonClass() {
       if (this.isPending) return 'primary';
       if (this.isOpen) return 'success';
@@ -146,6 +177,15 @@ export default {
     },
     showAdditionalActions() {
       return !this.isPending && !this.isSnoozed;
+    },
+    inbox() {
+      return this.$store.getters['inboxes/getInbox'](this.currentChat.inbox_id);
+    },
+    enabledRequiredContactType(){
+      return this.isFeatureEnabledonAccount(
+        this.accountId,
+        FEATURE_FLAGS.REQUIRED_CONTACT_TYPE,
+      );
     },
   },
   mounted() {
@@ -159,37 +199,52 @@ export default {
     bus.$off(CMD_RESOLVE_CONVERSATION, this.onCmdResolveConversation);
   },
   methods: {
-    async handleKeyEvents(e) {
+    getKeyboardEvents() {
+      return {
+        'Alt+KeyM': {
+          action: () => this.$refs.arrowDownButton?.$el.click(),
+          allowOnFocusedInput: true,
+        },
+        'Alt+KeyE': this.resolveOrToast,
+        '$mod+Alt+KeyE': async event => {
+          const { all, activeIndex, lastIndex } = this.getConversationParams();
+          await this.resolveOrToast();
+
+          if (activeIndex < lastIndex) {
+            all[activeIndex + 1].click();
+          } else if (all.length > 1) {
+            all[0].click();
+            document.querySelector('.conversations-list').scrollTop = 0;
+          }
+
+          event.preventDefault();
+        },
+      };
+    },
+    getConversationParams() {
       const allConversations = document.querySelectorAll(
         '.conversations-list .conversation'
       );
-      if (hasPressedAltAndMKey(e)) {
-        if (this.$refs.arrowDownButton) {
-          this.$refs.arrowDownButton.$el.click();
-        }
-      }
-      if (hasPressedAltAndEKey(e)) {
-        const activeConversation = document.querySelector(
-          'div.conversations-list div.conversation.active'
-        );
-        const activeConversationIndex = [...allConversations].indexOf(
-          activeConversation
-        );
-        const lastConversationIndex = allConversations.length - 1;
-        try {
-          await this.toggleStatus(wootConstants.STATUS_TYPE.RESOLVED);
-        } catch (error) {
-          // error
-        }
-        if (hasPressedCommandPlusAltAndEKey(e)) {
-          if (activeConversationIndex < lastConversationIndex) {
-            allConversations[activeConversationIndex + 1].click();
-          } else if (allConversations.length > 1) {
-            allConversations[0].click();
-            document.querySelector('.conversations-list').scrollTop = 0;
-          }
-          e.preventDefault();
-        }
+
+      const activeConversation = document.querySelector(
+        'div.conversations-list div.conversation.active'
+      );
+      const activeConversationIndex = [...allConversations].indexOf(
+        activeConversation
+      );
+      const lastConversationIndex = allConversations.length - 1;
+
+      return {
+        all: allConversations,
+        activeIndex: activeConversationIndex,
+        lastIndex: lastConversationIndex,
+      };
+    },
+    async resolveOrToast() {
+      try {
+        await this.toggleStatus(wootConstants.STATUS_TYPE.RESOLVED);
+      } catch (error) {
+        // error
       }
     },
     onCmdSnoozeConversation(snoozeType) {
@@ -229,8 +284,29 @@ export default {
     openDropdown() {
       this.showActionsDropdown = true;
     },
+    showContactSidebar(){
+      this.updateUISettings({
+        is_contact_sidebar_open: true,
+        is_conv_actions_open: true,
+      });
+    },
     toggleStatus(status, snoozedUntil) {
       this.closeDropdown();
+
+      if (this.inbox.label_required && status === this.STATUS_TYPE.RESOLVED){
+        if (this.currentChat.labels.length === 0){
+          this.showAlert(this.$t('CONVERSATION.LABEL_REQUIRED'));
+          this.showContactSidebar();
+          return;
+        }
+      }
+
+      if (this.enabledRequiredContactType && !this.currentChat.contact_kind){
+        this.showAlert(this.$t('CONVERSATION.CONTACT_TYPE_REQUIRED'));
+        this.showContactSidebar();
+        return;
+      }
+
       this.isLoading = true;
       this.$store
         .dispatch('toggleStatus', {
@@ -247,6 +323,26 @@ export default {
       const ninja = document.querySelector('ninja-keys');
       ninja.open({ parent: 'snooze_conversation' });
     },
+    closeConversation(){
+      this.closeDropdown();
+      this.$store.dispatch('closeConversation', {
+          conversationId: this.currentChat.id,
+          closed: true
+        }).then(() => {
+          this.showAlert('Conversation is closed');
+          this.currentChat.closed = true
+        });
+    },
+    uncloseConversation(){
+      this.closeDropdown();
+      this.$store.dispatch('closeConversation', {
+          conversationId: this.currentChat.id,
+          closed: false
+        }).then(() => {
+          this.showAlert('Conversation is unclosed');
+          this.currentChat.closed = false
+        });
+    }
   },
 };
 </script>

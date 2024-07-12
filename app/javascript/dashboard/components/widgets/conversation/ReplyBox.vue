@@ -86,6 +86,7 @@
         :signature="signatureToApply"
         :allow-signature="true"
         :channel-type="channelType"
+        :enable-smart-actions="enableSmartActions"
         @typing-off="onTypingOff"
         @typing-on="onTypingOn"
         @focus="onFocus"
@@ -100,7 +101,7 @@
       <attachment-preview
         class="flex-col mt-4"
         :attachments="attachedFiles"
-        :remove-attachment="removeAttachment"
+        @remove-attachment="removeAttachment"
       />
     </div>
     <message-signature-missing-alert
@@ -153,8 +154,8 @@
 
 <script>
 import { mapGetters } from 'vuex';
-import { mixin as clickaway } from 'vue-clickaway';
 import alertMixin from 'shared/mixins/alertMixin';
+import keyboardEventListenerMixins from 'shared/mixins/keyboardEventListenerMixins';
 
 import CannedResponse from './CannedResponse.vue';
 import ReplyToMessage from './ReplyToMessage.vue';
@@ -178,7 +179,6 @@ import {
   replaceVariablesInMessage,
 } from '@chatwoot/utils';
 import WhatsappTemplates from './WhatsappTemplates/Modal.vue';
-import { buildHotKeys } from 'shared/helpers/KeyboardHelpers';
 import { MESSAGE_MAX_LENGTH } from 'shared/helpers/MessageTypeHelper';
 import inboxMixin, { INBOX_FEATURES } from 'shared/mixins/inboxMixin';
 import uiSettingsMixin from 'dashboard/mixins/uiSettings';
@@ -197,6 +197,7 @@ import {
 
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { LocalStorage } from 'shared/helpers/localStorage';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 
 const EmojiInput = () => import('shared/components/emoji/EmojiInput');
 
@@ -218,13 +219,13 @@ export default {
     ArticleSearchPopover,
   },
   mixins: [
-    clickaway,
     inboxMixin,
     uiSettingsMixin,
     alertMixin,
     messageFormatterMixin,
     rtlMixin,
     fileUploadMixin,
+    keyboardEventListenerMixins,
   ],
   props: {
     popoutReplyBox: {
@@ -258,6 +259,9 @@ export default {
       showCannedMenu: false,
       showVariablesMenu: false,
       newConversationModalActive: false,
+      draftUpdateDelayer: null,
+      previousTypingStatus: '',
+      previousDraftMessage: '',
       showArticleSearchPopover: false,
     };
   },
@@ -270,6 +274,8 @@ export default {
       globalConfig: 'globalConfig/get',
       accountId: 'getCurrentAccountId',
       isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
+      smartActions: 'getSmartActions',
+      copilotResponse: 'getCopilotResponse',
     }),
     currentContact() {
       return this.$store.getters['contacts/getContact'](
@@ -344,8 +350,12 @@ export default {
       return this.$store.getters['inboxes/getInbox'](this.inboxId);
     },
     messagePlaceHolder() {
-      return this.isPrivate
-        ? this.$t('CONVERSATION.FOOTER.PRIVATE_MSG_INPUT')
+      if (this.isPrivate) {
+        return this.$t('CONVERSATION.FOOTER.PRIVATE_MSG_INPUT');
+      }
+
+      return this.enableCopilot
+        ? this.$t('CONVERSATION.FOOTER.SMART_AI_INPUT')
         : this.$t('CONVERSATION.FOOTER.MSG_INPUT');
     },
     isMessageLengthReachingThreshold() {
@@ -473,6 +483,13 @@ export default {
         this.isAWhatsAppChannel
       );
     },
+    enableSmartActions() {
+      const isFeatEnabled = this.isFeatureEnabledonAccount(
+        this.accountId,
+        FEATURE_FLAGS.SMART_ACTIONS
+      );
+      return isFeatEnabled && (this.isAnEmailChannel || this.isAWebWidgetInbox);
+    },
     isSignatureEnabledForInbox() {
       return !this.isPrivate && this.sendWithSignature;
     },
@@ -502,11 +519,10 @@ export default {
       return `draft-${this.conversationIdByRoute}-${this.replyType}`;
     },
     audioRecordFormat() {
-      if (
-        this.isAWhatsAppChannel ||
-        this.isAPIInbox ||
-        this.isATelegramChannel
-      ) {
+      if (this.isAWhatsAppChannel || this.isATelegramChannel) {
+        return AUDIO_FORMATS.MP3;
+      }
+      if (this.isAPIInbox) {
         return AUDIO_FORMATS.OGG;
       }
       return AUDIO_FORMATS.WAV;
@@ -580,6 +596,9 @@ export default {
       this.setToDraft(this.conversationIdByRoute, oldReplyType);
       this.getFromDraft();
     },
+    smartActions(){
+      this.onAskCopilot(this.copilotResponse)
+    }
   },
 
   mounted() {
@@ -664,21 +683,39 @@ export default {
     saveDraft(conversationId, replyType) {
       if (this.message || this.message === '') {
         const key = `draft-${conversationId}-${replyType}`;
-        const draftToSave = trimContent(this.message || '');
+        const draftToSave = removeSignature(
+          trimContent(this.message || ''),
+          this.signatureToApply
+        );
 
-        this.$store.dispatch('draftMessages/set', {
-          key,
-          message: draftToSave,
-        });
+        if (this.previousDraftMessage === draftToSave) {
+          return;
+        }
+
+        clearTimeout(this.draftUpdateDelayer);
+
+        this.draftUpdateDelayer = setTimeout(() => {
+          this.previousDraftMessage = draftToSave;
+          this.$store.dispatch('draftMessages/set', {
+            key,
+            conversationId,
+            message: draftToSave,
+          });
+        }, 1000);
       }
     },
     setToDraft(conversationId, replyType) {
       this.saveDraft(conversationId, replyType);
       this.message = '';
     },
-    getFromDraft() {
+    async getFromDraft() {
       if (this.conversationIdByRoute) {
         const key = `draft-${this.conversationIdByRoute}-${this.replyType}`;
+        const conversationId = this.conversationIdByRoute;
+        await this.$store.dispatch('draftMessages/getFromRemote', {
+          key,
+          conversationId,
+        });
         const messageFromStore =
           this.$store.getters['draftMessages/get'](key) || '';
 
@@ -698,27 +735,45 @@ export default {
     removeFromDraft() {
       if (this.conversationIdByRoute) {
         const key = `draft-${this.conversationIdByRoute}-${this.replyType}`;
-        this.$store.dispatch('draftMessages/delete', { key });
+        const conversationId = this.conversationIdByRoute;
+        this.$store.dispatch('draftMessages/delete', { key, conversationId });
       }
     },
-    handleKeyEvents(e) {
-      const keyCode = buildHotKeys(e);
-      if (keyCode === 'escape') {
-        this.hideEmojiPicker();
-        this.hideMentions();
-      } else if (keyCode === 'meta+k') {
-        const ninja = document.querySelector('ninja-keys');
-        ninja.open();
-        e.preventDefault();
-      } else if (keyCode === 'enter' && this.isAValidEvent('enter')) {
-        this.onSendReply();
-        e.preventDefault();
-      } else if (
-        ['meta+enter', 'ctrl+enter'].includes(keyCode) &&
-        this.isAValidEvent('cmd_enter')
-      ) {
-        this.onSendReply();
-      }
+    getKeyboardEvents() {
+      return {
+        Escape: {
+          action: () => {
+            this.hideEmojiPicker();
+            this.hideMentions();
+          },
+          allowOnFocusedInput: true,
+        },
+        '$mod+KeyK': {
+          action: e => {
+            e.preventDefault();
+            const ninja = document.querySelector('ninja-keys');
+            ninja.open();
+          },
+          allowOnFocusedInput: true,
+        },
+        Enter: {
+          action: e => {
+            if (this.isAValidEvent('enter')) {
+              this.onSendReply();
+              e.preventDefault();
+            }
+          },
+          allowOnFocusedInput: true,
+        },
+        '$mod+Enter': {
+          action: () => {
+            if (this.isAValidEvent('cmd_enter')) {
+              this.onSendReply();
+            }
+          },
+          allowOnFocusedInput: true,
+        },
+      };
     },
     isAValidEvent(selectedKey) {
       return (
@@ -887,6 +942,31 @@ export default {
         this.message = updatedMessage;
       }, 100);
     },
+    async onAskCopilot(response) {
+      if (
+        !response &&
+        !response.content &&
+        !response.content.length
+      ) {
+        return;
+      }
+
+      if (this.message.length > 0) {
+        return;
+      }
+
+      const answer = response.content;
+
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i <= answer.length) {
+          this.message = answer.substring(0, i);
+          i += 1;
+        } else {
+          clearInterval(interval);
+        }
+      }, 10);
+    },
     setReplyMode(mode = REPLY_EDITOR_MODES.REPLY) {
       const { can_reply: canReply } = this.currentChat;
       this.$store.dispatch('draftMessages/setReplyEditorMode', {
@@ -937,6 +1017,13 @@ export default {
       this.bccEmails = '';
       this.toEmails = '';
     },
+    clearRecorder() {
+      this.isRecordingAudio = false;
+      // Only clear the recorded audio when we click toggle button.
+      this.attachedFiles = this.attachedFiles.filter(
+        file => !file?.isRecordedAudio
+      );
+    },
     toggleEmojiPicker() {
       this.showEmojiPicker = !this.showEmojiPicker;
     },
@@ -944,8 +1031,7 @@ export default {
       this.isRecordingAudio = !this.isRecordingAudio;
       this.isRecorderAudioStopped = !this.isRecordingAudio;
       if (!this.isRecordingAudio) {
-        this.clearMessage();
-        this.clearEmailField();
+        this.clearRecorder();
       }
     },
     toggleAudioRecorderPlayPause() {
@@ -989,16 +1075,23 @@ export default {
       }
     },
     onFinishRecorder(file) {
-      return file && this.onFileUpload(file);
+      // Added a new key isRecordedAudio to the file to find it's and recorded audio
+      // Because to filter and show only non recorded audio and other attachments
+      const autoRecordedFile = {
+        ...file,
+        isRecordedAudio: true,
+      };
+      return file && this.onFileUpload(autoRecordedFile);
     },
     toggleTyping(status) {
       const conversationId = this.currentChat.id;
       const isPrivate = this.isPrivate;
 
-      if (!conversationId) {
+      if (!conversationId || this.previousTypingStatus === status) {
         return;
       }
 
+      this.previousTypingStatus = status;
       this.$store.dispatch('conversationTypingStatus/toggleTyping', {
         status,
         conversationId,
@@ -1015,13 +1108,12 @@ export default {
           isPrivate: this.isPrivate,
           thumb: reader.result,
           blobSignedId: blob ? blob.signed_id : undefined,
+          isRecordedAudio: file?.isRecordedAudio || false,
         });
       };
     },
-    removeAttachment(itemIndex) {
-      this.attachedFiles = this.attachedFiles.filter(
-        (item, index) => itemIndex !== index
-      );
+    removeAttachment(attachments) {
+      this.attachedFiles = attachments;
     },
     setReplyToInPayload(payload) {
       if (this.inReplyTo?.id) {
@@ -1133,8 +1225,8 @@ export default {
       // If the last incoming message sender is different from the conversation contact, add them to the "to"
       // and add the conversation contact to the CC
       if (!emailAttributes.from.includes(conversationContact)) {
-        to.push(...emailAttributes.from);
-        cc.push(conversationContact);
+        cc.push(...emailAttributes.from);
+        // to.push(...emailAttributes.from);
       }
 
       // Remove the conversation contact's email from the BCC list if present
@@ -1202,18 +1294,42 @@ export default {
 }
 
 .reply-box {
+  transition:
+    box-shadow 0.35s cubic-bezier(0.37, 0, 0.63, 1),
+    height 2s cubic-bezier(0.37, 0, 0.63, 1);
+
   @apply relative border-t border-slate-50 dark:border-slate-700 bg-white dark:bg-slate-900;
+  min-width: 550px;
+
+  &.is-focused {
+    box-shadow:
+      0 1px 3px 0 rgba(0, 0, 0, 0.1),
+      0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
 
   &.is-private {
-    @apply bg-yellow-50 dark:bg-yellow-200;
+    @apply bg-yellow-100 dark:bg-yellow-800;
+
+    .reply-box__top {
+      @apply bg-yellow-100 dark:bg-yellow-800;
+
+      > input {
+        @apply bg-yellow-100 dark:bg-yellow-800;
+      }
+    }
   }
 }
+
 .send-button {
   @apply mb-0;
 }
 
 .reply-box__top {
   @apply relative py-0 px-4 -mt-px border-t border-solid border-slate-50 dark:border-slate-700;
+
+  textarea {
+    @apply shadow-none border-transparent bg-transparent m-0 max-h-60 min-h-[3rem] pt-4 pb-0 px-0 resize-none;
+  }
 }
 
 .emoji-dialog {
@@ -1228,6 +1344,7 @@ export default {
 
 .emoji-dialog--rtl {
   @apply left-[unset] -right-80;
+
   &::before {
     transform: rotate(90deg);
     filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.08));

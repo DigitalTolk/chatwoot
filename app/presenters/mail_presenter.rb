@@ -128,6 +128,15 @@ class MailPresenter < SimpleDelegator
     from_email_address(@mail[:reply_to].try(:value)) || @mail['X-Original-Sender'].try(:value) || from_email_address(from.first)
   end
 
+  def auto_reply?
+    return true if @mail['X-Autoreply'].try(:value).present?
+    return true if @mail['X-Autorespond'].try(:value).present?
+    return true if @mail['Auto-Submitted'].try(:value).present? && @mail['Auto-Submitted'].try(:value).to_s != 'no'
+    return true if @mail['Precedence'].try(:value).to_s.casecmp('auto_reply').zero?
+
+    false
+  end
+
   def from_email_address(email)
     Mail::Address.new(email).address
   end

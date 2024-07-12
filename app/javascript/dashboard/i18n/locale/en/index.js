@@ -12,6 +12,7 @@ import contact from './contact.json';
 import contactFilters from './contactFilters.json';
 import conversation from './conversation.json';
 import csatMgmt from './csatMgmt.json';
+import csatSettings from './csatSettings.json';
 import emoji from './emoji.json';
 import generalSettings from './generalSettings.json';
 import helpCenter from './helpCenter.json';
@@ -29,7 +30,10 @@ import settings from './settings.json';
 import signup from './signup.json';
 import teamsSettings from './teamsSettings.json';
 import whatsappTemplates from './whatsappTemplates.json';
+import sla from './sla.json';
 import inbox from './inbox.json';
+import general from './general.json';
+import datePicker from './datePicker.json';
 
 export default {
   ...advancedFilters,
@@ -46,6 +50,7 @@ export default {
   ...contactFilters,
   ...conversation,
   ...csatMgmt,
+  ...csatSettings,
   ...emoji,
   ...generalSettings,
   ...helpCenter,
@@ -61,7 +66,10 @@ export default {
   ...setNewPassword,
   ...settings,
   ...signup,
+  ...sla,
   ...teamsSettings,
   ...whatsappTemplates,
   ...inbox,
+  ...general,
+  ...datePicker,
 };

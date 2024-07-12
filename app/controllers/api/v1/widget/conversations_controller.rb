@@ -33,10 +33,10 @@ class Api::V1::Widget::ConversationsController < Api::V1::Widget::BaseController
   end
 
   def transcript
-    if permitted_params[:email].present? && conversation.present?
+    if conversation.present? && conversation.contact.present? && conversation.contact.email.present?
       ConversationReplyMailer.with(account: conversation.account).conversation_transcript(
         conversation,
-        permitted_params[:email]
+        conversation.contact.email
       )&.deliver_later
     end
     head :ok
@@ -71,6 +71,14 @@ class Api::V1::Widget::ConversationsController < Api::V1::Widget::BaseController
     conversation.custom_attributes = conversation.custom_attributes.excluding(params[:custom_attribute])
     conversation.save!
     render json: conversation
+  end
+
+  def total_csat_questions
+    render json: { total: inbox.csat_template&.questions_count }
+  end
+
+  def csat_template_status
+    render json: { status: inbox.csat_template_enabled? }
   end
 
   private

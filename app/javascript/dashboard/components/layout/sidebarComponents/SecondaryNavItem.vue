@@ -2,12 +2,18 @@
   <li v-show="isMenuItemVisible" class="mt-1">
     <div v-if="hasSubMenu" class="flex justify-between">
       <span
-        class="text-sm text-slate-700 dark:text-slate-200 font-semibold my-2 px-2 pt-1"
+        class="px-2 pt-1 my-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
+        @click="toggleMenu"
       >
-        {{ $t(`SIDEBAR.${menuItem.label}`) }}
+        <div class="flex sidebar-chevron">
+          <fluent-icon v-if="isOpen" size="10" icon="chevron-down" class="mt-2 mr-2"/>
+          <fluent-icon v-else size="10" icon="chevron-right" type="solid" class="mt-2 mr-2"/>
+          {{ $t(`SIDEBAR.${menuItem.label}`) }}
+        </div>
       </span>
       <div v-if="menuItem.showNewButton" class="flex items-center">
         <woot-button
+          v-if="isOpen"
           size="tiny"
           variant="clear"
           color-scheme="secondary"
@@ -19,7 +25,7 @@
     </div>
     <router-link
       v-else
-      class="rounded-lg leading-4 font-medium flex items-center p-2 m-0 text-sm text-slate-700 dark:text-slate-100 hover:bg-slate-25 dark:hover:bg-slate-800"
+      class="flex items-center p-2 m-0 text-sm font-medium leading-4 rounded-lg text-slate-700 dark:text-slate-100 hover:bg-slate-25 dark:hover:bg-slate-800"
       :class="computedClass"
       :to="menuItem && menuItem.toState"
     >
@@ -31,7 +37,7 @@
       {{ $t(`SIDEBAR.${menuItem.label}`) }}
       <span
         v-if="showChildCount(menuItem.count)"
-        class="rounded-md text-xxs font-medium mx-1 py-0 px-1"
+        class="px-1 py-0 mx-1 font-medium rounded-md text-xxs"
         :class="{
           'text-slate-300 dark:text-slate-600': isCountZero && !isActiveView,
           'text-slate-600 dark:text-slate-50': !isCountZero && !isActiveView,
@@ -46,15 +52,16 @@
         v-if="menuItem.beta"
         data-view-component="true"
         label="Beta"
-        class="px-1 mx-1 inline-block font-medium leading-4 border border-green-400 text-green-500 rounded-lg text-xxs"
+        class="inline-block px-1 mx-1 font-medium leading-4 text-green-500 border border-green-400 rounded-lg text-xxs"
       >
         {{ $t('SIDEBAR.BETA') }}
       </span>
     </router-link>
 
-    <ul v-if="hasSubMenu" class="list-none ml-0 mb-0">
+    <ul v-if="hasSubMenu" class="list-none ml-2 mb-0">
       <secondary-child-nav-item
         v-for="child in menuItem.children"
+        v-if="isOpen"
         :key="child.id"
         :to="child.toState"
         :label="child.label"
@@ -64,6 +71,9 @@
         :warning-icon="computedInboxErrorClass(child)"
         :show-child-count="showChildCount(child.count)"
         :child-item-count="child.count"
+        :stats-id="child.id"
+        :stats-field="child.statsField"
+        :show-open-conversation-count="child.showOpenConversationCount"
       />
       <router-link
         v-if="showItem(menuItem)"
@@ -71,7 +81,7 @@
         :to="menuItem.toState"
         custom
       >
-        <li class="pl-1">
+        <li class="pl-1" v-if="isOpen">
           <a :href="href">
             <woot-button
               size="tiny"
@@ -94,6 +104,7 @@
 import { mapGetters } from 'vuex';
 
 import adminMixin from '../../../mixins/isAdmin';
+import configMixin from 'shared/mixins/configMixin';
 import {
   getInboxClassByType,
   getInboxWarningIconClass,
@@ -103,11 +114,12 @@ import SecondaryChildNavItem from './SecondaryChildNavItem.vue';
 import {
   isOnMentionsView,
   isOnUnattendedView,
+  isOnRecentlyResolvedView,
 } from '../../../store/modules/conversations/helpers/actionHelpers';
 
 export default {
   components: { SecondaryChildNavItem },
-  mixins: [adminMixin],
+  mixins: [adminMixin, configMixin],
   props: {
     menuItem: {
       type: Object,
@@ -132,15 +144,33 @@ export default {
     },
     isMenuItemVisible() {
       if (this.menuItem.globalConfigFlag) {
+        // this checks for the `csmlEditorHost` flag in the global config
+        // if this is present, we toggle the CSML editor menu item
+        // TODO: This is very specific, and can be handled better, fix it
         return !!this.globalConfig[this.menuItem.globalConfigFlag];
       }
+
+      let isFeatureEnabled = true;
+      if (this.menuItem.featureFlag) {
+        isFeatureEnabled = this.isFeatureEnabledonAccount(
+          this.accountId,
+          this.menuItem.featureFlag
+        );
+      }
+
+      if (this.menuItem.isEnterpriseOnly) {
+        if (!this.isEnterprise) return false;
+        return isFeatureEnabled || this.globalConfig.displayManifest;
+      }
+
       if (this.menuItem.featureFlag) {
         return this.isFeatureEnabledonAccount(
           this.accountId,
           this.menuItem.featureFlag
         );
       }
-      return true;
+
+      return isFeatureEnabled;
     },
     isAllConversations() {
       return (
@@ -159,6 +189,12 @@ export default {
         isOnUnattendedView({ route: this.$route }) &&
         this.menuItem.toStateName === 'conversation_unattended'
       );
+    },
+    isRecentlyResolved(){
+      return (
+        isOnRecentlyResolvedView({ route: this.$route}) &&
+        this.menuItem.toStateName === 'conversation_recently_resolved'
+      )
     },
     isTeamsSettings() {
       return (
@@ -187,7 +223,6 @@ export default {
     isCurrentRoute() {
       return this.$store.state.route.name.includes(this.menuItem.toStateName);
     },
-
     computedClass() {
       // If active inbox is present, do not highlight conversations
       if (this.activeInbox) return ' ';
@@ -195,7 +230,8 @@ export default {
         this.isAllConversations ||
         this.isMentions ||
         this.isUnattended ||
-        this.isCurrentRoute
+        this.isCurrentRoute ||
+        this.isRecentlyResolved
       ) {
         return 'bg-woot-25 dark:bg-slate-800 text-woot-500 dark:text-woot-500 hover:text-woot-500 dark:hover:text-woot-500 active-view';
       }
@@ -213,6 +249,11 @@ export default {
 
       return 'hover:text-slate-700 dark:hover:text-slate-100';
     },
+  },
+  data(){
+    return {
+      isOpen: true,
+    }
   },
   methods: {
     computedInboxClass(child) {
@@ -249,6 +290,14 @@ export default {
     showChildCount(count) {
       return Number.isInteger(count);
     },
+    toggleMenu() {
+      this.isOpen = !this.isOpen;
+    }
   },
 };
 </script>
+<style lang="scss" scoped>
+  .sidebar-chevron{
+    cursor: pointer;
+  }
+</style>

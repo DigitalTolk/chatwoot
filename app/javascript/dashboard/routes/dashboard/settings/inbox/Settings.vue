@@ -21,7 +21,7 @@
       </woot-tabs>
     </setting-intro-banner>
 
-    <div v-if="selectedTabKey === 'inbox_settings'" class="settings--content">
+    <div v-if="selectedTabKey === 'inbox_settings'" class="mx-8">
       <settings-section
         :title="$t('INBOX_MGMT.SETTINGS_POPUP.INBOX_UPDATE_TITLE')"
         :sub-title="$t('INBOX_MGMT.SETTINGS_POPUP.INBOX_UPDATE_SUB_TEXT')"
@@ -37,7 +37,7 @@
         />
         <woot-input
           v-model.trim="selectedInboxName"
-          class="w-[75%] pb-4"
+          class="w-3/4 pb-4"
           :class="{ error: $v.selectedInboxName.$error }"
           :label="inboxNameLabel"
           :placeholder="inboxNamePlaceHolder"
@@ -51,7 +51,7 @@
         <woot-input
           v-if="isAPIInbox"
           v-model.trim="webhookUrl"
-          class="w-[75%] pb-4"
+          class="w-3/4 pb-4"
           :class="{ error: $v.webhookUrl.$error }"
           :label="
             $t('INBOX_MGMT.ADD.WEBSITE_CHANNEL.CHANNEL_WEBHOOK_URL.LABEL')
@@ -69,7 +69,7 @@
         <woot-input
           v-if="isAWebWidgetInbox"
           v-model.trim="channelWebsiteUrl"
-          class="w-[75%] pb-4"
+          class="w-3/4 pb-4"
           :label="$t('INBOX_MGMT.ADD.WEBSITE_CHANNEL.CHANNEL_DOMAIN.LABEL')"
           :placeholder="
             $t('INBOX_MGMT.ADD.WEBSITE_CHANNEL.CHANNEL_DOMAIN.PLACEHOLDER')
@@ -78,7 +78,7 @@
         <woot-input
           v-if="isAWebWidgetInbox"
           v-model.trim="channelWelcomeTitle"
-          class="w-[75%] pb-4"
+          class="w-3/4 pb-4"
           :label="
             $t('INBOX_MGMT.ADD.WEBSITE_CHANNEL.CHANNEL_WELCOME_TITLE.LABEL')
           "
@@ -92,7 +92,7 @@
         <woot-input
           v-if="isAWebWidgetInbox"
           v-model.trim="channelWelcomeTagline"
-          class="w-[75%] pb-4"
+          class="w-3/4 pb-4"
           :label="
             $t('INBOX_MGMT.ADD.WEBSITE_CHANNEL.CHANNEL_WELCOME_TAGLINE.LABEL')
           "
@@ -103,17 +103,17 @@
           "
         />
 
-        <label v-if="isAWebWidgetInbox" class="w-[75%] pb-4">
+        <label v-if="isAWebWidgetInbox" class="w-3/4 pb-4">
           {{ $t('INBOX_MGMT.ADD.WEBSITE_CHANNEL.WIDGET_COLOR.LABEL') }}
           <woot-color-picker v-model="inbox.widget_color" />
         </label>
 
-        <label v-if="isAWhatsAppChannel" class="w-[75%] pb-4">
+        <label v-if="isAWhatsAppChannel" class="w-3/4 pb-4">
           {{ $t('INBOX_MGMT.ADD.WHATSAPP.PROVIDERS.LABEL') }}
           <input v-model="whatsAppAPIProviderName" type="text" disabled />
         </label>
 
-        <label class="w-[75%] pb-4">
+        <label class="w-3/4 pb-4">
           {{
             $t('INBOX_MGMT.ADD.WEBSITE_CHANNEL.CHANNEL_GREETING_TOGGLE.LABEL')
           }}
@@ -157,7 +157,7 @@
             :richtext="!textAreaChannels"
           />
         </div>
-        <label v-if="isAWebWidgetInbox" class="w-[75%] pb-4">
+        <label v-if="isAWebWidgetInbox" class="w-3/4 pb-4">
           {{ $t('INBOX_MGMT.ADD.WEBSITE_CHANNEL.REPLY_TIME.TITLE') }}
           <select v-model="replyTime">
             <option key="in_a_few_minutes" value="in_a_few_minutes">
@@ -180,7 +180,19 @@
           </p>
         </label>
 
-        <label v-if="isAWebWidgetInbox" class="w-[75%] pb-4">
+        <label class="w-[75%] pb-4">
+          {{ $t('INBOX_MGMT.SETTINGS_POPUP.SET_DEFAULT_ACTION_REPLY') }}
+          <select v-model="defaultReplyAction">
+            <option value="reply_and_resolve">
+              Reply And Resolve
+            </option>
+            <option value="reply_as_pending">
+              Reply as Pending
+            </option>
+          </select>
+        </label>
+
+        <label v-if="isAWebWidgetInbox" class="w-3/4 pb-4">
           {{ $t('INBOX_MGMT.SETTINGS_POPUP.ENABLE_EMAIL_COLLECT_BOX') }}
           <select v-model="emailCollectEnabled">
             <option :value="true">
@@ -197,7 +209,7 @@
           </p>
         </label>
 
-        <label class="w-[75%] pb-4">
+        <label class="w-3/4 pb-4">
           {{ $t('INBOX_MGMT.SETTINGS_POPUP.ENABLE_CSAT') }}
           <select v-model="csatSurveyEnabled">
             <option :value="true">
@@ -212,7 +224,72 @@
           </p>
         </label>
 
-        <label v-if="isAWebWidgetInbox" class="w-[75%] pb-4">
+        <label class="w-[75%] pb-4">
+          {{ $t('INBOX_MGMT.EDIT.CSAT_TRIGGERS') }}
+          <select v-model="csatTrigger">
+            <option value="conversation_all_reply">{{ $t('INBOX_MGMT.EDIT.SEND_CSAT_ALL_REPLY') }}</option>
+            <option value="conversation_resolved">{{ $t('INBOX_MGMT.EDIT.SEND_CSAT_ON_CLOSED') }}</option>
+          </select>
+          <p class="pb-1 text-sm not-italic text-slate-600 dark:text-slate-400">
+            {{ $t('INBOX_MGMT.SETTINGS_POPUP.CSAT_TRIGGER_SUBTEXT') }}
+          </p>
+        </label>
+
+        <label class="w-[75%] pb-4">
+          CSAT Template
+          <select v-model="csatTemplateId">
+            <option value="">Default</option>
+            <option v-for="temp in csatTemplates" :key="temp.id" :value="temp.id">{{ temp.name }}</option>
+          </select>
+        </label>
+
+        <label class="w-[75%] pb-4">
+          Enable Push Notification
+          <select v-model="pushNotificationEnabled">
+            <option :value="true">
+              {{ $t('INBOX_MGMT.EDIT.ENABLE_CSAT.ENABLED') }}
+            </option>
+            <option :value="false">
+              {{ $t('INBOX_MGMT.EDIT.ENABLE_CSAT.DISABLED') }}
+            </option>
+          </select>
+          <p class="pb-1 text-sm not-italic text-slate-600 dark:text-slate-400">
+            Enabling push notifications enables instant updates for inbox events. 
+          </p>
+        </label>
+
+        <label class="w-[75%] pb-4">
+          Enable Audio Notification
+          <select v-model="audioNotificationEnabled">
+            <option :value="true">
+              {{ $t('INBOX_MGMT.EDIT.ENABLE_CSAT.ENABLED') }}
+            </option>
+            <option :value="false">
+              {{ $t('INBOX_MGMT.EDIT.ENABLE_CSAT.DISABLED') }}
+            </option>
+          </select>
+          <p class="pb-1 text-sm not-italic text-slate-600 dark:text-slate-400">
+            Enable this option to receive sound notifications for new conversations and messages.
+          </p>
+        </label>
+
+        <label class="w-[75%] pb-4">
+          Require a label
+          <select v-model="labelRequired">
+            <option :value="true">
+              Enabled
+            </option>
+            <option :value="false">
+              Disabled
+            </option>
+          </select>
+          <p class="pb-1 text-sm not-italic text-slate-600 dark:text-slate-400">
+            Enable this option to require at least 1 label before resolving a conversation.
+          </p>
+        </label>
+
+        <label v-if="isAWebWidgetInbox" class="w-3/4 pb-4">
+
           {{ $t('INBOX_MGMT.SETTINGS_POPUP.ALLOW_MESSAGES_AFTER_RESOLVED') }}
           <select v-model="allowMessagesAfterResolved">
             <option :value="true">
@@ -231,7 +308,7 @@
           </p>
         </label>
 
-        <label v-if="isAWebWidgetInbox" class="w-[75%] pb-4">
+        <label v-if="isAWebWidgetInbox" class="w-3/4 pb-4">
           {{ $t('INBOX_MGMT.SETTINGS_POPUP.ENABLE_CONTINUITY_VIA_EMAIL') }}
           <select v-model="continuityViaEmail">
             <option :value="true">
@@ -249,7 +326,7 @@
             }}
           </p>
         </label>
-        <div class="w-[75%] pb-4">
+        <div class="w-3/4 pb-4">
           <label>
             {{ $t('INBOX_MGMT.HELP_CENTER.LABEL') }}
           </label>
@@ -265,7 +342,7 @@
             {{ $t('INBOX_MGMT.HELP_CENTER.SUB_TEXT') }}
           </p>
         </div>
-        <label v-if="canLocktoSingleConversation" class="w-[75%] pb-4">
+        <label v-if="canLocktoSingleConversation" class="w-3/4 pb-4">
           {{ $t('INBOX_MGMT.SETTINGS_POPUP.LOCK_TO_SINGLE_CONVERSATION') }}
           <select v-model="locktoSingleConversation">
             <option :value="true">
@@ -287,7 +364,7 @@
         <label v-if="isAWebWidgetInbox">
           {{ $t('INBOX_MGMT.FEATURES.LABEL') }}
         </label>
-        <div v-if="isAWebWidgetInbox" class="pt-2 pb-4">
+        <div v-if="isAWebWidgetInbox" class="pt-2 pb-4 flex gap-2">
           <input
             v-model="selectedFeatureFlags"
             type="checkbox"
@@ -298,7 +375,7 @@
             {{ $t('INBOX_MGMT.FEATURES.DISPLAY_FILE_PICKER') }}
           </label>
         </div>
-        <div v-if="isAWebWidgetInbox" class="pb-4">
+        <div v-if="isAWebWidgetInbox" class="pb-4 flex gap-2">
           <input
             v-model="selectedFeatureFlags"
             type="checkbox"
@@ -309,7 +386,7 @@
             {{ $t('INBOX_MGMT.FEATURES.DISPLAY_EMOJI_PICKER') }}
           </label>
         </div>
-        <div v-if="isAWebWidgetInbox" class="pb-4">
+        <div v-if="isAWebWidgetInbox" class="pb-4 flex gap-2">
           <input
             v-model="selectedFeatureFlags"
             type="checkbox"
@@ -320,7 +397,7 @@
             {{ $t('INBOX_MGMT.FEATURES.ALLOW_END_CONVERSATION') }}
           </label>
         </div>
-        <div v-if="isAWebWidgetInbox" class="pb-4">
+        <div v-if="isAWebWidgetInbox" class="pb-4 flex gap-2">
           <input
             v-model="selectedFeatureFlags"
             type="checkbox"
@@ -338,7 +415,7 @@
         :sub-title="$t('INBOX_MGMT.EDIT.SENDER_NAME_SECTION.SUB_TEXT')"
         :show-border="false"
       >
-        <div class="w-[75%] pb-4">
+        <div class="w-3/4 pb-4">
           <sender-name-example-preview
             :sender-name-type="senderNameType"
             :business-name="businessName"
@@ -400,7 +477,7 @@
       <facebook-reauthorize v-if="isAFacebookInbox" :inbox-id="inbox.id" />
     </div>
 
-    <div v-if="selectedTabKey === 'collaborators'" class="settings--content">
+    <div v-if="selectedTabKey === 'collaborators'" class="mx-8">
       <collaborators-page :inbox="inbox" />
     </div>
     <div v-if="selectedTabKey === 'configuration'">
@@ -463,6 +540,11 @@ export default {
       greetingMessage: '',
       emailCollectEnabled: false,
       csatSurveyEnabled: false,
+      csatTrigger: null,
+      csatTemplateId: '',
+      pushNotificationEnabled: true,
+      audioNotificationEnabled: true,
+      labelRequired: false,
       senderNameType: 'friendly',
       businessName: '',
       locktoSingleConversation: false,
@@ -475,6 +557,7 @@ export default {
       channelWelcomeTagline: '',
       selectedFeatureFlags: [],
       replyTime: '',
+      defaultReplyAction: 'reply_and_resolve',
       selectedTabIndex: 0,
       selectedPortalSlug: '',
       showBusinessNameInput: false,
@@ -486,6 +569,7 @@ export default {
       isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
       uiFlags: 'inboxes/getUIFlags',
       portals: 'portals/allPortals',
+      csatTemplates: 'csatTemplates/records'
     }),
     selectedTabKey() {
       return this.tabs[this.selectedTabIndex]?.key;
@@ -589,7 +673,9 @@ export default {
       return this.inbox.name;
     },
     canLocktoSingleConversation() {
-      return this.isASmsInbox || this.isAWhatsAppChannel;
+      return (
+        this.isASmsInbox || this.isAWhatsAppChannel || this.isAFacebookInbox
+      );
     },
     inboxNameLabel() {
       if (this.isAWebWidgetInbox) {
@@ -621,6 +707,7 @@ export default {
     },
   },
   mounted() {
+    this.$store.dispatch('csatTemplates/get');
     this.fetchInboxSettings();
     this.fetchPortals();
   },
@@ -658,6 +745,11 @@ export default {
         this.greetingMessage = this.inbox.greeting_message || '';
         this.emailCollectEnabled = this.inbox.enable_email_collect;
         this.csatSurveyEnabled = this.inbox.csat_survey_enabled;
+        this.csatTemplateId = this.inbox.csat_template_id;
+        this.csatTrigger = this.inbox.csat_trigger || 'conversation_resolved';
+        this.pushNotificationEnabled = this.inbox.push_notification_enabled;
+        this.audioNotificationEnabled = this.inbox.audio_notification_enabled;
+        this.labelRequired = this.inbox.label_required;
         this.senderNameType = this.inbox.sender_name_type;
         this.businessName = this.inbox.business_name;
         this.allowMessagesAfterResolved =
@@ -668,6 +760,7 @@ export default {
         this.channelWelcomeTagline = this.inbox.welcome_tagline;
         this.selectedFeatureFlags = this.inbox.selected_feature_flags || [];
         this.replyTime = this.inbox.reply_time;
+        this.defaultReplyAction = this.inbox.default_reply_action;
         this.locktoSingleConversation = this.inbox.lock_to_single_conversation;
         this.selectedPortalSlug = this.inbox.help_center
           ? this.inbox.help_center.slug
@@ -681,6 +774,12 @@ export default {
           name: this.selectedInboxName,
           enable_email_collect: this.emailCollectEnabled,
           csat_survey_enabled: this.csatSurveyEnabled,
+          csat_template_id: this.csatTemplateId,
+          csat_trigger: this.csatTrigger,
+          push_notification_enabled: this.pushNotificationEnabled,
+          audio_notification_enabled: this.audioNotificationEnabled,
+          label_required: this.labelRequired,
+          default_reply_action: this.defaultReplyAction,
           allow_messages_after_resolved: this.allowMessagesAfterResolved,
           greeting_enabled: this.greetingEnabled,
           greeting_message: this.greetingMessage || '',
@@ -757,11 +856,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.settings {
-  .settings--tabs {
-    ::v-deep .tabs {
-      @apply p-0;
-    }
+.settings--tabs {
+  ::v-deep .tabs {
+    @apply p-0;
   }
 }
 </style>

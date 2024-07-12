@@ -14,11 +14,7 @@
           @click="retrySendMessage"
         />
       </div>
-      <div
-        v-tooltip.top-start="messageToolTip"
-        :class="bubbleClass"
-        @contextmenu="openContextMenu($event)"
-      >
+      <div :class="bubbleClass" @contextmenu="openContextMenu($event)">
         <bubble-mail-head
           :email-attributes="contentAttributes.email"
           :cc="emailHeadAttributes.cc"
@@ -44,11 +40,18 @@
           </template>
         </div>
         <bubble-text
-          v-else-if="data.content"
+          v-else-if="notCsat"
           :message="message"
           :is-email="isEmailContentType"
           :display-quoted-button="displayQuotedButton"
         />
+
+        <bubble-csat
+          v-if="isFirstCsat"
+          :key="message.id"
+          :csat-messages="csatMessages"
+        />
+
         <bubble-integration
           :message-id="data.id"
           :content-attributes="contentAttributes"
@@ -90,7 +93,7 @@
           :id="data.id"
           :sender="data.sender"
           :story-sender="storySender"
-          :external-error="externalError"
+          :external-error="errorMessageTooltip"
           :story-id="`${storyId}`"
           :is-a-tweet="isATweet"
           :is-a-whatsapp-channel="isAWhatsAppChannel"
@@ -146,6 +149,7 @@ import BubbleContact from './bubble/Contact.vue';
 import BubbleFile from './bubble/File.vue';
 import BubbleImageAudioVideo from './bubble/ImageAudioVideo.vue';
 import BubbleIntegration from './bubble/Integration.vue';
+import BubbleCsat from './bubble/Csat.vue';
 import BubbleLocation from './bubble/Location.vue';
 import BubbleMailHead from './bubble/MailHead.vue';
 import BubbleReplyTo from './bubble/ReplyTo.vue';
@@ -163,11 +167,14 @@ import { ACCOUNT_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { LocalStorage } from 'shared/helpers/localStorage';
 import { getDayDifferenceFromNow } from 'shared/helpers/DateHelper';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+import { mapGetters } from 'vuex';
 
 export default {
   components: {
     BubbleActions,
     BubbleContact,
+    BubbleCsat,
     BubbleFile,
     BubbleImageAudioVideo,
     BubbleIntegration,
@@ -218,6 +225,10 @@ export default {
       type: Object,
       default: () => ({}),
     },
+    csatMessages: {
+      type: Array,
+      default: () => [],
+    },
   },
   data() {
     return {
@@ -228,6 +239,10 @@ export default {
     };
   },
   computed: {
+    ...mapGetters({
+      isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
+      accountId: 'getCurrentAccountId',
+    }),
     attachments() {
       // Here it is used to get sender and created_at for each attachment
       return this.data?.attachments.map(attachment => ({
@@ -241,6 +256,15 @@ export default {
       return getDayDifferenceFromNow(new Date(), this.data?.created_at) >= 1;
     },
     shouldRenderMessage() {
+      if (this.data.content_type === 'input_csat') {
+        if (!this.isFirstCsat) {
+          return false;
+        }
+        if (this.currentInbox.csat_trigger === 'conversation_all_reply') {
+          return false;
+        }
+      }
+
       return (
         this.hasAttachments ||
         this.data.content ||
@@ -248,6 +272,9 @@ export default {
         this.isUnsupported ||
         this.isAnIntegrationMessage
       );
+    },
+    currentInbox() {
+      return this.$store.getters['inboxes/getInbox'](this.data.inbox_id);
     },
     emailMessageContent() {
       const {
@@ -286,10 +313,6 @@ export default {
         }
       );
 
-      if (this.contentType === 'input_csat') {
-        return this.$t('CONVERSATION.CSAT_REPLY_MESSAGE') + botMessageContent;
-      }
-
       return (
         this.formatMessage(
           this.data.content,
@@ -310,11 +333,23 @@ export default {
     },
     contextMenuEnabledOptions() {
       return {
+        smart_actions: this.enableSmartActions,
         copy: this.hasText,
         delete: this.hasText || this.hasAttachments,
         cannedResponse: this.isOutgoing && this.hasText,
         replyTo: !this.data.private && this.inboxSupportsReplyTo.outgoing,
       };
+    },
+    enableSmartActions() {
+      const isFeatEnabled = this.isFeatureEnabledonAccount(
+        this.accountId,
+        FEATURE_FLAGS.SMART_ACTIONS
+      );
+      return (
+        isFeatEnabled &&
+        this.isIncoming &&
+        (this.isAnEmailInbox || this.isWebWidgetInbox)
+      );
     },
     contentAttributes() {
       return this.data.content_attributes || {};
@@ -412,14 +447,11 @@ export default {
           }
         : false;
     },
-    messageToolTip() {
-      if (this.isMessageDeleted) {
-        return false;
-      }
+    errorMessageTooltip() {
       if (this.isFailed) {
         return this.externalError || this.$t(`CONVERSATION.SEND_FAILED`);
       }
-      return false;
+      return '';
     },
     wrapClass() {
       return {
@@ -471,6 +503,23 @@ export default {
         return name;
       }
       return '';
+    },
+    firstCsat() {
+      if (this.csatMessages.length === 0) {
+        return null;
+      }
+
+      return this.csatMessages[0];
+    },
+    isFirstCsat() {
+      if (this.data.content_type !== 'input_csat' || !this.firstCsat) {
+        return false;
+      }
+
+      return this.firstCsat.id === this.data.id;
+    },
+    notCsat() {
+      return this.data.content && this.data.content_type !== 'input_csat';
     },
   },
   watch: {
@@ -577,7 +626,8 @@ export default {
 
         > img,
         > video {
-          @apply rounded-lg;
+          /** ensure that the bubble radius and image radius match*/
+          @apply rounded-[0.4rem];
         }
 
         > video {
@@ -600,8 +650,8 @@ export default {
         @apply text-woot-400 dark:text-woot-400;
       }
 
-      .text-block-title {
-        @apply text-slate-700 dark:text-slate-700;
+      .attachment-name {
+        @apply text-slate-700 dark:text-slate-200;
       }
 
       .download.button {

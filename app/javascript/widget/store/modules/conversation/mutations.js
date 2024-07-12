@@ -106,4 +106,20 @@ export const mutations = {
     const { id } = lastMessage;
     $state.lastMessageId = id;
   },
+
+  setTotalCsat($state, total) {
+    $state.totalCsat = total;
+  },
+
+  incrementAnsweredCsat($state) {
+    $state.totalAnsweredCsat += 1;
+  },
+
+  incrementSubmittedCsat($state) {
+    $state.totalSubmittedCsat += 1;
+  },
+
+  setCsatTemplateEnabled($state, status) {
+    $state.csatTemplateEnabled = status;
+  },
 };

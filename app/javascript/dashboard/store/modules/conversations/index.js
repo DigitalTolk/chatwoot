@@ -12,12 +12,16 @@ const state = {
   listLoadingStatus: true,
   chatStatusFilter: wootConstants.STATUS_TYPE.OPEN,
   chatSortFilter: wootConstants.SORT_BY_TYPE.LATEST,
+  contact_kind: null,
   currentInbox: null,
   selectedChatId: null,
   appliedFilters: [],
   conversationParticipants: [],
   conversationLastSeen: null,
   syncConversationsMessages: {},
+  showSmartActions: false,
+  smartActions: [],
+  smartActionsContext: {},
 };
 
 // mutations
@@ -97,6 +101,10 @@ export const mutations = {
   [types.ASSIGN_PRIORITY](_state, { priority, conversationId }) {
     const [chat] = _state.allConversations.filter(c => c.id === conversationId);
     Vue.set(chat, 'priority', priority);
+  },
+  [types.ASSIGN_CONTACT_KIND](_state, { contactKind, conversationId }) {
+    const [chat] = _state.allConversations.filter(c => c.id === conversationId);
+    Vue.set(chat, 'contact_kind', contactKind);
   },
 
   [types.UPDATE_CONVERSATION_CUSTOM_ATTRIBUTES](_state, custom_attributes) {
@@ -280,6 +288,22 @@ export const mutations = {
     { conversationId, messageId }
   ) {
     _state.syncConversationsMessages[conversationId] = messageId;
+  },
+
+  [types.SET_SMART_ACTIONS](_state, data) {
+    Vue.set(_state, 'smartActions', data);
+  },
+
+  [types.ADD_SMART_ACTION](_state, data) {
+    _state.smartActions.push(data);
+  },
+
+  [types.DISPLAY_SMART_ACTIONS](_state, value) {
+    Vue.set(_state, 'showSmartActions', value);
+  },
+
+  [types.SET_SMART_ACTIONS_CONTEXT](_state, value) {
+    Vue.set(_state, 'smartActionsContext', value);
   },
 };
 

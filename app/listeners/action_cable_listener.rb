@@ -18,7 +18,7 @@ class ActionCableListener < BaseListener
 
     notification, account, unread_count, count = extract_notification_and_account(event)
     tokens = [event.data[:notification].user.pubsub_token]
-    broadcast(account, tokens, NOTIFICATION_DELETED, { notification: notification.push_event_data, unread_count: unread_count, count: count })
+    broadcast(account, tokens, NOTIFICATION_DELETED, { notification: { id: notification.id }, unread_count: unread_count, count: count })
   end
 
   def account_cache_invalidated(event)
@@ -44,6 +44,14 @@ class ActionCableListener < BaseListener
     tokens = user_tokens(account, conversation.inbox.members) + contact_tokens(conversation.contact_inbox, message)
 
     broadcast(account, tokens, MESSAGE_UPDATED, message.push_event_data.merge(previous_changes: event.data[:previous_changes]))
+  end
+
+  def smart_action_created(event)
+    smart_action, account = extract_smart_action_and_account(event)
+    conversation = smart_action.conversation
+    tokens = user_tokens(account, conversation.inbox.members)
+
+    broadcast(account, tokens, SMART_ACTION_CREATED, smart_action.event_data)
   end
 
   def first_reply_created(event)

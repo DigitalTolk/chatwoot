@@ -53,7 +53,7 @@
           </span>
           <span
             v-if="showChildCount"
-            class="bg-slate-50 dark:bg-slate-700 rounded text-xxs font-medium mx-1 py-0 px-1"
+            class="bg-slate-50 dark:bg-slate-700 rounded-full min-w-[18px] justify-center items-center flex text-xxs font-medium mx-1 py-0 px-1"
             :class="
               isCountZero
                 ? `text-slate-300 dark:text-slate-500`
@@ -74,11 +74,16 @@
             size="12"
           />
         </span>
+        <span v-if="hasOpenConversation" :title="openConversationTitle()" class="unread shadow-lg rounded-full text-xxs font-semibold h-4 leading-4 ml-auto mt-1 min-w-[1rem] px-1 py-0 text-center text-white bg-green-400">
+          {{ openConversationCount }}
+        </span>
       </a>
     </li>
   </router-link>
 </template>
 <script>
+import { mapGetters } from 'vuex';
+
 export default {
   props: {
     to: {
@@ -113,8 +118,24 @@ export default {
       type: Number,
       default: 0,
     },
+    showOpenConversationCount: {
+      type: Boolean,
+      default: false,
+    },
+    statsId: {
+      type: Number,
+      default: 0,
+    },
+    statsField: {
+      type: String,
+      default: ''
+    }
+
   },
   computed: {
+    ...mapGetters({
+      inboxStats: 'conversationStats/getStats',
+    }),
     showIcon() {
       return {
         'overflow-hidden whitespace-nowrap text-ellipsis': this.shouldTruncate,
@@ -126,6 +147,23 @@ export default {
     menuTitle() {
       return this.shouldTruncate ? this.label : '';
     },
+    hasOpenConversation(){
+      return this.showOpenConversationCount && this.openConversationCount !== undefined && this.openConversationCount > 0;
+    },
+    openConversationCount(){
+      const field = this.inboxStats[this.statsField]
+
+      if (!field){
+        return 0;
+      }
+
+      return field[this.statsId];
+    }
   },
+  methods: {
+    openConversationTitle(){
+      return `${this.openConversationCount} open conversations`;
+    }
+  }
 };
 </script>

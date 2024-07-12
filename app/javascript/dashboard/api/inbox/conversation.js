@@ -54,6 +54,12 @@ class ConversationApi extends ApiClient {
     });
   }
 
+  close({ conversationId, closed }){
+    return axios.post(`${this.url}/${conversationId}/close`, {
+      closed
+    })
+  }
+
   togglePriority({ conversationId, priority }) {
     return axios.post(`${this.url}/${conversationId}/toggle_priority`, {
       priority,
@@ -70,6 +76,16 @@ class ConversationApi extends ApiClient {
   assignTeam({ conversationId, teamId }) {
     const params = { team_id: teamId };
     return axios.post(`${this.url}/${conversationId}/assignments`, params);
+  }
+
+  assignContactKind({ conversationId, contactKind }) {
+    const params = { contact_kind: contactKind };
+    return axios.post(`${this.url}/${conversationId}/change_contact_kind`, params);
+  }
+
+  changeContact({ conversationId, email }) {
+    const params = { email: email };
+    return axios.post(`${this.url}/${conversationId}/change_contact`, params);
   }
 
   markMessageRead({ id }) {

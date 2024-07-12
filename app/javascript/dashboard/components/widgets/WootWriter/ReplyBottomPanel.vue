@@ -104,7 +104,7 @@
           class="fixed top-0 bottom-0 left-0 right-0 z-20 flex flex-col items-center justify-center w-full h-full gap-2 text-slate-900 dark:text-slate-50 bg-modal-backdrop-light dark:bg-modal-backdrop-dark"
         >
           <fluent-icon icon="cloud-backup" size="40" />
-          <h4 class="page-sub-title text-slate-900 dark:text-slate-50">
+          <h4 class="text-2xl break-words text-slate-900 dark:text-slate-50">
             {{ $t('CONVERSATION.REPLYBOX.DRAG_DROP') }}
           </h4>
         </div>
@@ -121,6 +121,13 @@
       />
     </div>
     <div class="right-wrap">
+      <reply-to-multiple-action 
+        :inbox="inbox"
+        :conversation-id="conversationId"
+        :is-disabled="isSendDisabled"
+        :message="message"
+        :on-send="onSend"
+      />
       <woot-button
         size="small"
         :class-names="buttonClass"
@@ -136,8 +143,7 @@
 <script>
 import FileUpload from 'vue-upload-component';
 import * as ActiveStorage from 'activestorage';
-import { hasPressedAltAndAKey } from 'shared/helpers/KeyboardHelpers';
-import eventListenerMixins from 'shared/mixins/eventListenerMixins';
+import keyboardEventListenerMixins from 'shared/mixins/keyboardEventListenerMixins';
 import uiSettingsMixin from 'dashboard/mixins/uiSettings';
 import inboxMixin from 'shared/mixins/inboxMixin';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
@@ -150,11 +156,12 @@ import VideoCallButton from '../VideoCallButton.vue';
 import AIAssistanceButton from '../AIAssistanceButton.vue';
 import { REPLY_EDITOR_MODES } from './constants';
 import { mapGetters } from 'vuex';
+import ReplyToMultipleAction from './ReplyToMultipleAction.vue';
 
 export default {
   name: 'ReplyBottomPanel',
-  components: { FileUpload, VideoCallButton, AIAssistanceButton },
-  mixins: [eventListenerMixins, uiSettingsMixin, inboxMixin],
+  components: { FileUpload, VideoCallButton, AIAssistanceButton, ReplyToMultipleAction },
+  mixins: [keyboardEventListenerMixins, uiSettingsMixin, inboxMixin],
   props: {
     mode: {
       type: String,
@@ -340,10 +347,15 @@ export default {
     ActiveStorage.start();
   },
   methods: {
-    handleKeyEvents(e) {
-      if (hasPressedAltAndAKey(e)) {
-        this.$refs.upload.$children[1].$el.click();
-      }
+    getKeyboardEvents() {
+      return {
+        'Alt+KeyA': {
+          action: () => {
+            this.$refs.upload.$children[1].$el.click();
+          },
+          allowOnFocusedInput: true,
+        },
+      };
     },
     toggleMessageSignature() {
       this.setSignatureFlagForInbox(this.channelType, !this.sendWithSignature);

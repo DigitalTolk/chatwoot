@@ -153,6 +153,15 @@ RSpec.describe ConversationReplyMailer do
       it 'updates the source_id' do
         expect(mail.message_id).to eq message.source_id
       end
+
+      context 'with previous message' do
+        let!(:prev_message) { create(:message, conversation: conversation, account: account, message_type: 'incoming', content: 'Prev Message') }
+
+        it do
+          allow(conversation).to receive(:send_with_quoted_thread?).and_return(true)
+          expect(mail.decoded).to include prev_message.content
+        end
+      end
     end
 
     context 'when smtp enabled for email channel' do
@@ -297,16 +306,16 @@ RSpec.describe ConversationReplyMailer do
       let(:inbox) { create(:inbox, account: account) }
       let(:inbox_member) { create(:inbox_member, user: agent, inbox: inbox) }
       let(:conversation) { create(:conversation, assignee: agent, inbox: inbox_member.inbox, account: account) }
-      let!(:message) { create(:message, conversation: conversation, account: account) }
+      let!(:message) { create(:message, conversation: conversation, account: account, content_type: 'incoming_email') }
       let(:mail) { described_class.reply_with_summary(message.conversation, message.id).deliver_now }
       let(:domain) { account.inbound_email_domain }
 
       it 'renders the receiver email' do
-        expect(mail.to).to eq([message&.conversation&.contact&.email])
+        expect(mail.to).to eq([conversation.contact.email])
       end
 
       it 'renders the reply to email' do
-        expect(mail.reply_to).to eq([message&.conversation&.assignee&.email])
+        expect(mail.reply_to).to eq([conversation.assignee.email])
       end
 
       it 'sets the correct custom message id' do
@@ -314,18 +323,19 @@ RSpec.describe ConversationReplyMailer do
       end
 
       it 'sets the correct in reply to id' do
-        expect(mail.in_reply_to).to eq("account/#{conversation.account.id}/conversation/#{conversation.uuid}@#{domain}")
+        expect(mail.in_reply_to).to eq("conversation/#{conversation.uuid}/messages/#{message.id}@#{domain}")
       end
     end
 
     context 'when inbox email address is available' do
-      let(:inbox) { create(:inbox, account: account, email_address: 'noreply@chatwoot.com') }
+      let(:imap_enabled_channel) { create(:channel_email, email: 'noreply@chatwoot.com', imap_enabled: true, account: account) }
+      let(:inbox) { create(:inbox, channel: imap_enabled_channel, account: account, email_address: imap_enabled_channel.email) }
       let(:conversation) { create(:conversation, assignee: agent, inbox: inbox, account: account) }
       let!(:message) { create(:message, conversation: conversation, account: account) }
       let(:mail) { described_class.reply_with_summary(message.conversation, message.id).deliver_now }
 
       it 'set reply to email address as inbox email address' do
-        expect(mail.from).to eq([inbox.email_address])
+        expect(mail.from).to eq([inbox.account.support_email])
         expect(mail.reply_to).to eq([inbox.email_address])
       end
     end
@@ -361,7 +371,7 @@ RSpec.describe ConversationReplyMailer do
       end
 
       it 'sets the correct in reply to id' do
-        expect(mail.in_reply_to).to eq("account/#{conversation.account.id}/conversation/#{conversation.uuid}@#{conversation.account.domain}")
+        expect(mail.in_reply_to).to eq("conversation/#{conversation.uuid}/messages/#{message.id}@#{conversation.account.domain}")
       end
     end
 
@@ -380,7 +390,7 @@ RSpec.describe ConversationReplyMailer do
       end
 
       it 'sets the correct in reply to id' do
-        expect(mail.in_reply_to).to eq("account/#{conversation.account.id}/conversation/#{conversation.uuid}@#{domain}")
+        expect(mail.in_reply_to).to eq("conversation/#{conversation.uuid}/messages/#{message.id}@#{domain}")
       end
     end
   end

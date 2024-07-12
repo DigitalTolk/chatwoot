@@ -3,7 +3,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   include DateRangeHelper
   include HmacConcern
 
-  before_action :conversation, except: [:index, :meta, :search, :create, :filter]
+  before_action :conversation, except: [:index, :meta, :search, :create, :filter, :ticket, :ticket_issue, :search_by_email]
   before_action :inbox, :contact, :contact_inbox, only: [:create]
 
   def index
@@ -36,10 +36,18 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     end
   end
 
+  def update
+    @conversation.update!(permitted_update_params)
+  end
+
   def filter
     result = ::Conversations::FilterService.new(params.permit!, current_user).perform
     @conversations = result[:conversations]
     @conversations_count = result[:count]
+  rescue CustomExceptions::CustomFilter::InvalidAttribute,
+         CustomExceptions::CustomFilter::InvalidOperator,
+         CustomExceptions::CustomFilter::InvalidValue => e
+    render_could_not_create_error(e.message)
   end
 
   def mute
@@ -79,7 +87,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   end
 
   def should_assign_conversation?
-    @conversation.status == 'open' && Current.user.is_a?(User) && Current.user&.agent?
+    (@conversation.status == 'open' || @conversation.assignee.blank?) && Current.user.is_a?(User) && Current.user&.agent?
   end
 
   def toggle_priority
@@ -91,6 +99,18 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     typing_status_manager = ::Conversations::TypingStatusManager.new(@conversation, current_user, params)
     typing_status_manager.toggle_typing_status
     head :ok
+  end
+
+  def change_contact
+    service = Digitaltolk::ChangeContactService.new(Current.account, @conversation, params[:email])
+
+    render json: { success: service.perform }
+  end
+
+  def change_contact_kind
+    service = Digitaltolk::ChangeContactKindService.new(Current.account, @conversation, params[:contact_kind])
+
+    render json: { success: service.perform }
   end
 
   def update_last_seen
@@ -108,7 +128,45 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     @conversation.save!
   end
 
+  def get
+    # TODO: unused?
+    render json: { total: @conversation.inbox.csat_template.questions_count }
+  end
+
+  def ticket
+    result = Digitaltolk::SendEmailTicketService.new(Current.account, Current.user, params).perform
+    render json: result
+  end
+
+  def ticket_issue
+    result = Digitaltolk::SendEmailTicketIssueService.new(Current.account, Current.user, params).perform
+    render json: result
+  end
+
+  def related_emails
+    @conversations = Digitaltolk::RelatedEmailService.new(@conversation.display_id).perform
+    @conversations_count = @conversations.count
+  end
+
+  def search_by_email
+    @conversations = Digitaltolk::FindConversationByEmailService.new(params).perform
+  end
+
+  def reply
+    result = Digitaltolk::AddConversationReplyService.new(@conversation, params).perform
+    render json: result
+  end
+
+  def close
+    render json: @conversation.update(closed: params[:closed])
+  end
+
   private
+
+  def permitted_update_params
+    # TODO: Move the other conversation attributes to this method and remove specific endpoints for each attribute
+    params.permit(:priority)
+  end
 
   def update_last_seen_on_conversation(last_seen_at, update_assignee)
     # rubocop:disable Rails/SkipsModelValidations
@@ -176,3 +234,5 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
     @conversation.assignee_id? && Current.user == @conversation.assignee
   end
 end
+
+Api::V1::Accounts::ConversationsController.prepend_mod_with('Api::V1::Accounts::ConversationsController')
