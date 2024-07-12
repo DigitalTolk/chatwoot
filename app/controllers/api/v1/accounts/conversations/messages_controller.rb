@@ -66,7 +66,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
 
   def deactivate_smart_actions
     return unless Current.account.feature_enabled?('smart_actions')
-    return unless (copilot_draft = @conversation.smart_actions.ask_copilot.first&.content).present?
+    return unless (copilot_draft = @conversation.smart_actions.ask_copilot.active.last&.content).present?
 
     if params[:content].to_s.include? copilot_draft
       @conversation.smart_actions.update_all(active: false)
