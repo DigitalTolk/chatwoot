@@ -132,6 +132,7 @@ import globalConfigMixin from 'shared/mixins/globalConfigMixin';
 import Thumbnail from '../../../../components/widgets/Thumbnail.vue';
 import AddAgent from './AddAgent.vue';
 import EditAgent from './EditAgent.vue';
+import alertMixin from 'shared/mixins/alertMixin';
 
 export default {
   components: {
@@ -139,7 +140,7 @@ export default {
     EditAgent,
     Thumbnail,
   },
-  mixins: [globalConfigMixin],
+  mixins: [globalConfigMixin, alertMixin],
   data() {
     return {
       loading: {},
@@ -232,19 +233,19 @@ export default {
     async deleteAgent(id) {
       try {
         await this.$store.dispatch('agents/delete', id);
-        this.showAlert(this.$t('AGENT_MGMT.DELETE.API.SUCCESS_MESSAGE'));
+        this.showAlertMessage(this.$t('AGENT_MGMT.DELETE.API.SUCCESS_MESSAGE'));
       } catch (error) {
-        this.showAlert(this.$t('AGENT_MGMT.DELETE.API.ERROR_MESSAGE'));
+        this.showAlertMessage(this.$t('AGENT_MGMT.DELETE.API.ERROR_MESSAGE'));
       }
     },
     // Show SnackBar
-    showAlert(message) {
+    showAlertMessage(message) {
       // Reset loading, current selected agent
       this.loading[this.currentAgent.id] = false;
       this.currentAgent = {};
       // Show message
       this.agentAPI.message = message;
-      bus.$emit('newToastMessage', message);
+      this.showAlert(message);
     },
   },
 };

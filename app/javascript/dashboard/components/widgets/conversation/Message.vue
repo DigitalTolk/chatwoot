@@ -1,5 +1,9 @@
 <template>
-  <li v-if="shouldRenderMessage" :id="`message${data.id}`" :class="alignBubble">
+  <li
+    v-if="shouldRenderMessage"
+    :id="`message${data.id}`"
+    :class="[alignBubble, 'group']"
+  >
     <div :class="wrapClass">
       <div
         v-if="isFailed && !hasOneDayPassed && !isAnEmailInbox"
@@ -128,7 +132,10 @@
         </a>
       </div>
     </div>
-    <div v-if="shouldShowContextMenu" class="context-menu-wrap">
+    <div
+      v-if="shouldShowContextMenu"
+      class="invisible context-menu-wrap group-hover:visible"
+    >
       <context-menu
         v-if="isBubble && !isMessageDeleted"
         :context-menu-position="contextMenuPosition"
@@ -169,6 +176,7 @@ import { LocalStorage } from 'shared/helpers/localStorage';
 import { getDayDifferenceFromNow } from 'shared/helpers/DateHelper';
 import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { mapGetters } from 'vuex';
+import * as Sentry from '@sentry/browser';
 
 export default {
   components: {
@@ -281,7 +289,16 @@ export default {
         html_content: { full: fullHTMLContent } = {},
         text_content: { full: fullTextContent } = {},
       } = this.contentAttributes.email || {};
-      return fullHTMLContent || fullTextContent || '';
+
+      if (fullHTMLContent) {
+        return fullHTMLContent;
+      }
+
+      if (fullTextContent) {
+        return fullTextContent.replace(/\n/g, '<br>');
+      }
+
+      return '';
     },
     displayQuotedButton() {
       if (this.emailMessageContent.includes('<blockquote')) {
@@ -529,11 +546,11 @@ export default {
   },
   mounted() {
     this.hasMediaLoadError = false;
-    bus.$on(BUS_EVENTS.ON_MESSAGE_LIST_SCROLL, this.closeContextMenu);
+    this.$emitter.on(BUS_EVENTS.ON_MESSAGE_LIST_SCROLL, this.closeContextMenu);
     this.setupHighlightTimer();
   },
   beforeDestroy() {
-    bus.$off(BUS_EVENTS.ON_MESSAGE_LIST_SCROLL, this.closeContextMenu);
+    this.$emitter.off(BUS_EVENTS.ON_MESSAGE_LIST_SCROLL, this.closeContextMenu);
     clearTimeout(this.higlightTimeout);
   },
   methods: {
@@ -542,14 +559,28 @@ export default {
     },
     hasMediaAttachment(type) {
       if (this.hasAttachments && this.data.attachments.length > 0) {
-        const { attachments = [{}] } = this.data;
-        const { file_type: fileType } = attachments[0];
-        return fileType === type && !this.hasMediaLoadError;
+        return this.compareMessageFileType(this.data, type);
       }
       if (this.storyReply) {
         return true;
       }
       return false;
+    },
+    compareMessageFileType(messageData, type) {
+      try {
+        const { attachments = [{}] } = messageData;
+        const { file_type: fileType } = attachments[0];
+        return fileType === type && !this.hasMediaLoadError;
+      } catch (err) {
+        Sentry.setContext('attachment-parsing-error', {
+          messageData,
+          type,
+          hasMediaLoadError: this.hasMediaLoadError,
+        });
+
+        Sentry.captureException(err);
+        return false;
+      }
     },
     handleContextMenuClick() {
       this.showContextMenu = !this.showContextMenu;
@@ -587,7 +618,7 @@ export default {
       const { conversation_id: conversationId, id: replyTo } = this.data;
 
       LocalStorage.updateJsonStore(replyStorageKey, conversationId, replyTo);
-      bus.$emit(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, this.data);
+      this.$emitter.emit(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, this.data);
     },
     setupHighlightTimer() {
       if (Number(this.$route.query.messageId) !== Number(this.data.id)) {
