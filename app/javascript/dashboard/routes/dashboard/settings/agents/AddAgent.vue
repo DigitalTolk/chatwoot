@@ -1,203 +1,213 @@
-<template>
-  <woot-modal :show.sync="show" :on-close="onClose">
-    <div class="flex flex-col h-auto overflow-auto">
-      <woot-modal-header
-        :header-title="$t('AGENT_MGMT.ADD.TITLE')"
-        :header-content="$t('AGENT_MGMT.ADD.DESC')"
-      />
+<script setup>
+import { ref, computed } from 'vue';
+import { useStore, useMapGetter } from 'dashboard/composables/store';
+import { useI18n } from 'vue-i18n';
+import { useAlert } from 'dashboard/composables';
+import { useVuelidate } from '@vuelidate/core';
+import { required, email } from '@vuelidate/validators';
+import WootSubmitButton from 'dashboard/components/buttons/FormSubmitButton.vue';
 
-      <form
-        class="flex flex-col items-start w-full"
-        @submit.prevent="addAgent()"
-      >
-        <div class="w-full">
-          <label :class="{ error: $v.agentName.$error }">
-            {{ $t('AGENT_MGMT.ADD.FORM.NAME.LABEL') }}
-            <input
-              v-model.trim="agentName"
-              type="text"
-              :placeholder="$t('AGENT_MGMT.ADD.FORM.NAME.PLACEHOLDER')"
-              @input="$v.agentName.$touch"
-            />
-          </label>
-        </div>
-        <div class="w-full">
-          <label :class="{ error: $v.agentType.$error }">
-            {{ $t('AGENT_MGMT.ADD.FORM.AGENT_TYPE.LABEL') }}
-            <select v-model="agentType">
-              <option v-for="role in roles" :key="role.name" :value="role.name">
-                {{ role.label }}
-              </option>
-            </select>
-            <span v-if="$v.agentType.$error" class="message">
-              {{ $t('AGENT_MGMT.ADD.FORM.AGENT_TYPE.ERROR') }}
-            </span>
-          </label>
-        </div>
-        <div class="w-full">
-          <label :class="{ error: $v.agentEmail.$error }">
-            {{ $t('AGENT_MGMT.ADD.FORM.EMAIL.LABEL') }}
-            <input
-              v-model.trim="agentEmail"
-              type="text"
-              :placeholder="$t('AGENT_MGMT.ADD.FORM.EMAIL.PLACEHOLDER')"
-              @input="$v.agentEmail.$touch"
-            />
-          </label>
-        </div>
+const emit = defineEmits(['close']);
 
-        <div class="w-full">
-          <label>
-            {{ $t('AGENT_MGMT.EDIT.FORM.INBOXES.LABEL') }}
-            <multiselect
-              v-model="agentInboxes"
-              :options="inboxesList"
-              track-by="id"
-              label="name"
-              :placeholder="$t('FORMS.MULTISELECT.SELECT')"
-              :multiple="true"
-              :close-on-select="false"
-              :clear-on-select="false"
-              :hide-selected="true"
-              selected-label
-              :select-label="$t('FORMS.MULTISELECT.ENTER_TO_SELECT')"
-              deselect-label=""
-              :max-height="160"
-              :option-height="104"
-            />
-            
-          </label>
-        </div>
-        <div class="w-full">
-          <label>
-            {{ $t('AGENT_MGMT.EDIT.FORM.TEAMS.LABEL') }}
-            <multiselect
-              v-model="agentTeams"
-              :options="teamsList"
-              track-by="id"
-              label="name"
-              :placeholder="$t('FORMS.MULTISELECT.SELECT')"
-              :multiple="true"
-              :close-on-select="false"
-              :clear-on-select="false"
-              :hide-selected="true"
-              selected-label
-              :select-label="$t('FORMS.MULTISELECT.ENTER_TO_SELECT')"
-              deselect-label=""
-              :max-height="160"
-              :option-height="104"/>
-          </label>
-        </div>
+const store = useStore();
+const { t } = useI18n();
 
-        <div class="flex flex-row justify-end w-full gap-2 px-0 py-2">
-          <div class="w-full">
-            <woot-submit-button
-              :disabled="
-                $v.agentEmail.$invalid ||
-                $v.agentName.$invalid ||
-                uiFlags.isCreating
-              "
-              :button-text="$t('AGENT_MGMT.ADD.FORM.SUBMIT')"
-              :loading="uiFlags.isCreating"
-            />
-            <button class="button clear" @click.prevent="onClose">
-              {{ $t('AGENT_MGMT.ADD.CANCEL_BUTTON_TEXT') }}
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </woot-modal>
-</template>
+const agentName = ref('');
+const agentEmail = ref('');
+const selectedRoleId = ref('agent');
+const agentInboxes = ref(props.teams);
+const agentTeams = ref(props.inboxes);
 
-<script>
-import { required, minLength, email } from 'vuelidate/lib/validators';
-import { mapGetters } from 'vuex';
-import alertMixin from 'shared/mixins/alertMixin';
+const rules = {
+  agentName: { required },
+  agentEmail: { required, email },
+  selectedRoleId: { required },
+  
+};
 
-export default {
-  mixins: [alertMixin],
-  props: {
-    onClose: {
-      type: Function,
-      default: () => {},
+const v$ = useVuelidate(rules, {
+  agentName,
+  agentEmail,
+  selectedRoleId,
+});
+
+const uiFlags = useMapGetter('agents/getUIFlags');
+const getCustomRoles = useMapGetter('customRole/getCustomRoles');
+teamsList = useMapGetter('teams/getTeams');
+inboxesList = useMapGetter('inboxes/getInboxes');
+
+const roles = computed(() => {
+  const defaultRoles = [
+    {
+      id: 'administrator',
+      name: 'administrator',
+      label: t('AGENT_MGMT.AGENT_TYPES.ADMINISTRATOR'),
     },
-  },
-  data() {
-    return {
-      agentName: '',
-      agentEmail: '',
-      agentType: 'agent',
-      agentTeams: [],
-      agentInboxes: [],
-      vertical: 'bottom',
-      horizontal: 'center',
-      roles: [
-        {
-          name: 'administrator',
-          label: this.$t('AGENT_MGMT.AGENT_TYPES.ADMINISTRATOR'),
-        },
-        {
-          name: 'agent',
-          label: this.$t('AGENT_MGMT.AGENT_TYPES.AGENT'),
-        },
-      ],
-      show: true,
+    {
+      id: 'agent',
+      name: 'agent',
+      label: t('AGENT_MGMT.AGENT_TYPES.AGENT'),
+    },
+  ];
+
+  const customRoles = getCustomRoles.value.map(role => ({
+    id: role.id,
+    name: `custom_${role.id}`,
+    label: role.name,
+  }));
+
+  return [...defaultRoles, ...customRoles];
+});
+
+const selectedRole = computed(() =>
+  roles.value.find(
+    role =>
+      role.id === selectedRoleId.value || role.name === selectedRoleId.value
+  )
+);
+
+const addAgent = async () => {
+  v$.value.$touch();
+  if (v$.value.$invalid) return;
+
+  try {
+    const payload = {
+      name: agentName.value,
+      email: agentEmail.value,
+      team_ids: agentTeams.value.map(team => team.id),
+      inbox_ids: agentInboxes.value.map(inbox => inbox.id),
     };
-  },
-  computed: {
-    ...mapGetters({
-      uiFlags: 'agents/getUIFlags',
-      teamsList: 'teams/getTeams',
-      inboxesList: 'inboxes/getInboxes',
-    }),
-  },
-  validations: {
-    agentName: {
-      required,
-      minLength: minLength(1),
-    },
-    agentEmail: {
-      required,
-      email,
-    },
-    agentType: {
-      required,
-    },
-  },
 
-  methods: {
-    async addAgent() {
-      try {
-        await this.$store.dispatch('agents/create', {
-          name: this.agentName,
-          email: this.agentEmail,
-          role: this.agentType,
-          team_ids: this.agentTeams.map(team => team.id),
-          inbox_ids: this.agentInboxes.map(inbox => inbox.id),
-        });
-        this.showAlert(this.$t('AGENT_MGMT.ADD.API.SUCCESS_MESSAGE'));
-        this.onClose();
-      } catch (error) {
-        const {
-          response: {
-            data: {
-              error: errorResponse = '',
-              attributes: attributes = [],
-              message: attrError = '',
-            } = {},
-          } = {},
-        } = error;
+    if (selectedRole.value.name.startsWith('custom_')) {
+      payload.custom_role_id = selectedRole.value.id;
+    } else {
+      payload.role = selectedRole.value.name;
+    }
 
-        let errorMessage = '';
-        if (error?.response?.status === 422 && !attributes.includes('base')) {
-          errorMessage = this.$t('AGENT_MGMT.ADD.API.EXIST_MESSAGE');
-        } else {
-          errorMessage = this.$t('AGENT_MGMT.ADD.API.ERROR_MESSAGE');
-        }
-        this.showAlert(errorResponse || attrError || errorMessage);
-      }
-    },
-  },
+    await store.dispatch('agents/create', payload);
+    useAlert(t('AGENT_MGMT.ADD.API.SUCCESS_MESSAGE'));
+    emit('close');
+  } catch (error) {
+    const {
+      response: {
+        data: {
+          error: errorResponse = '',
+          attributes: attributes = [],
+          message: attrError = '',
+        } = {},
+      } = {},
+    } = error;
+
+    let errorMessage = '';
+    if (error?.response?.status === 422 && !attributes.includes('base')) {
+      errorMessage = t('AGENT_MGMT.ADD.API.EXIST_MESSAGE');
+    } else {
+      errorMessage = t('AGENT_MGMT.ADD.API.ERROR_MESSAGE');
+    }
+    useAlert(errorResponse || attrError || errorMessage);
+  }
 };
 </script>
+
+<template>
+  <div class="flex flex-col h-auto overflow-auto">
+    <woot-modal-header
+      :header-title="$t('AGENT_MGMT.ADD.TITLE')"
+      :header-content="$t('AGENT_MGMT.ADD.DESC')"
+    />
+    <form class="flex flex-col items-start w-full" @submit.prevent="addAgent">
+      <div class="w-full">
+        <label :class="{ error: v$.agentName.$error }">
+          {{ $t('AGENT_MGMT.ADD.FORM.NAME.LABEL') }}
+          <input
+            v-model="agentName"
+            type="text"
+            :placeholder="$t('AGENT_MGMT.ADD.FORM.NAME.PLACEHOLDER')"
+            @input="v$.agentName.$touch"
+          />
+        </label>
+      </div>
+
+      <div class="w-full">
+        <label :class="{ error: v$.selectedRoleIdemail.$error }">
+          {{ $t('AGENT_MGMT.ADD.FORM.AGENT_TYPE.LABEL') }}
+          <select v-model="selectedRoleId" @change="v$.selectedRoleId.$touch">
+            <option v-for="role in roles" :key="role.id" :value="role.id">
+              {{ role.label }}
+            </option>
+          </select>
+          <span v-if="v$.selectedRoleId.$error" class="message">
+            {{ $t('AGENT_MGMT.ADD.FORM.AGENT_TYPE.ERROR') }}
+          </span>
+        </label>
+      </div>
+
+      <div class="w-full">
+        <label>
+          {{ $t('AGENT_MGMT.EDIT.FORM.INBOXES.LABEL') }}
+          <multiselect
+            v-model="agentInboxes"
+            :options="inboxesList"
+            track-by="id"
+            label="name"
+            :placeholder="$t('FORMS.MULTISELECT.SELECT')"
+            :multiple="true"
+            :close-on-select="false"
+            :clear-on-select="false"
+            :hide-selected="true"
+            selected-label
+            :select-label="$t('FORMS.MULTISELECT.ENTER_TO_SELECT')"
+            deselect-label=""
+            :max-height="160"
+            :option-height="104"
+          />
+          
+        </label>
+      </div>
+      <div class="w-full">
+        <label>
+          {{ $t('AGENT_MGMT.EDIT.FORM.TEAMS.LABEL') }}
+          <multiselect
+            v-model="agentTeams"
+            :options="teamsList"
+            track-by="id"
+            label="name"
+            :placeholder="$t('FORMS.MULTISELECT.SELECT')"
+            :multiple="true"
+            :close-on-select="false"
+            :clear-on-select="false"
+            :hide-selected="true"
+            selected-label
+            :select-label="$t('FORMS.MULTISELECT.ENTER_TO_SELECT')"
+            deselect-label=""
+            :max-height="160"
+            :option-height="104"/>
+        </label>
+      </div>
+      <div class="w-full">
+        <label :class="{ error: v$.agentEmail.$error }">
+          {{ $t('AGENT_MGMT.ADD.FORM.EMAIL.LABEL') }}
+          <input
+            v-model="agentEmail"
+            type="email"
+            :placeholder="$t('AGENT_MGMT.ADD.FORM.EMAIL.PLACEHOLDER')"
+            @input="v$.agentEmail.$touch"
+          />
+        </label>
+      </div>
+
+      <div class="flex flex-row justify-end w-full gap-2 px-0 py-2">
+        <div class="w-full">
+          <WootSubmitButton
+            :disabled="v$.$invalid || uiFlags.isCreating"
+            :button-text="$t('AGENT_MGMT.ADD.FORM.SUBMIT')"
+            :loading="uiFlags.isCreating"
+          />
+          <button class="button clear" @click.prevent="emit('close')">
+            {{ $t('AGENT_MGMT.ADD.CANCEL_BUTTON_TEXT') }}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</template>

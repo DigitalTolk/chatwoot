@@ -1,5 +1,4 @@
-import Vue from 'vue';
-import Vuex from 'vuex';
+import { createStore } from 'vuex';
 
 import accounts from './modules/accounts';
 import agentBots from './modules/agentBots';
@@ -28,6 +27,7 @@ import conversationWatchers from './modules/conversationWatchers';
 import csat from './modules/csat';
 import csatTemplates from './modules/csatTemplates';
 import customViews from './modules/customViews';
+import customRole from './modules/customRole';
 import dashboardApps from './modules/dashboardApps';
 import globalConfig from 'shared/store/globalConfig';
 import inboxAssignableAgents from './modules/inboxAssignableAgents';
@@ -49,8 +49,7 @@ import SLAReports from './modules/SLAReports';
 
 const plugins = [];
 
-Vue.use(Vuex);
-export default new Vuex.Store({
+export default createStore({
   modules: {
     accounts,
     agentBots,
@@ -79,6 +78,7 @@ export default new Vuex.Store({
     csat,
     csatTemplates,
     customViews,
+    customRole,
     dashboardApps,
     globalConfig,
     inboxAssignableAgents,

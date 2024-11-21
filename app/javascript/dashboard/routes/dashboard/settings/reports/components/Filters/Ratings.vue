@@ -1,20 +1,3 @@
-<template>
-  <div class="multiselect-wrap--small">
-    <multiselect
-      v-model="selectedOption"
-      class="no-margin"
-      :option-height="24"
-      :placeholder="selectRating"
-      :options="options"
-      :show-labels="false"
-      track-by="value"
-      label="label"
-      @input="handleInput"
-      :multiple="multiple"
-    />
-  </div>
-</template>
-
 <script>
 import { CSAT_RATINGS } from 'shared/constants/messages';
 
@@ -26,6 +9,7 @@ export default {
       default: false,
     }
   },
+  emits: ['ratingFilterSelection'],
   data() {
     const translatedOptions = CSAT_RATINGS.reverse().map(option => ({
       ...option,
@@ -40,8 +24,25 @@ export default {
   },
   methods: {
     handleInput(selectedRating) {
-      this.$emit('rating-filter-selection', selectedRating);
+      this.$emit('ratingFilterSelection', selectedRating);
     },
   },
 };
 </script>
+
+<template>
+  <div class="multiselect-wrap--small">
+    <multiselect
+      v-model="selectedOption"
+      class="no-margin"
+      :option-height="24"
+      :placeholder="$t('FORMS.MULTISELECT.SELECT_ONE')"
+      :options="options"
+      :show-labels="false"
+      track-by="value"
+      label="label"
+      :multiple="multiple"
+      @update:model-value="handleInput"
+    />
+  </div>
+</template>

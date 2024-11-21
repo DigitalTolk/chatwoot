@@ -1,4 +1,3 @@
-import Vue from 'vue';
 import types from '../mutation-types';
 import ConversationApi from '../../api/inbox/conversation';
 
@@ -42,11 +41,11 @@ export const mutations = {
       my_teams_open_count: myTeamsOpenCount
     } = {}
   ) {
-    Vue.set($state, 'mineCount', mineCount);
-    Vue.set($state, 'allCount', allCount);
-    Vue.set($state, 'unAssignedCount', unAssignedCount);
-    Vue.set($state, 'allInboxOpenCount', allInboxOpenCount);
-    Vue.set($state, 'myTeamsOpenCount', myTeamsOpenCount);
+    $state.mineCount = mineCount;
+    $state.allCount = allCount;
+    $state.unAssignedCount = unAssignedCount;
+    $state.allInboxOpenCount = allInboxOpenCount;
+    $state.myTeamsOpenCount = myTeamsOpenCount;
   },
 };
 

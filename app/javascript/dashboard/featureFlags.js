@@ -34,4 +34,7 @@ export const FEATURE_FLAGS = {
   SMART_ACTIONS: 'smart_actions',
   REQUIRED_CONTACT_TYPE: 'required_contact_type',
   LINEAR: 'linear_integration',
+  CAPTAIN: 'captain_integration',
+  CUSTOM_ROLES: 'custom_roles',
+  CHATWOOT_V4: 'chatwoot_v4',
 };
