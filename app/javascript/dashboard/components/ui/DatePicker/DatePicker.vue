@@ -22,7 +22,7 @@ import {
   setYear,
   isAfter,
 } from 'date-fns';
-
+import { useAlert } from 'dashboard/composables';
 import DatePickerButton from './components/DatePickerButton.vue';
 import CalendarDateInput from './components/CalendarDateInput.vue';
 import CalendarDateRange from './components/CalendarDateRange.vue';
@@ -31,6 +31,7 @@ import CalendarMonth from './components/CalendarMonth.vue';
 import CalendarWeek from './components/CalendarWeek.vue';
 import CalendarFooter from './components/CalendarFooter.vue';
 
+const emit = defineEmits(['dateRangeChanged']);
 const { LAST_7_DAYS, LAST_30_DAYS, CUSTOM_RANGE } = DATE_RANGE_TYPES;
 const { START_CALENDAR, END_CALENDAR } = CALENDAR_TYPES;
 const { WEEK, MONTH, YEAR } = CALENDAR_PERIODS;
@@ -53,8 +54,6 @@ const hoveredEndDate = ref(null);
 
 const manualStartDate = ref(selectedStartDate.value);
 const manualEndDate = ref(selectedEndDate.value);
-
-const emit = defineEmits(['change']);
 
 // Watcher will set the start and end dates based on the selected range
 watch(selectedRange, newRange => {
@@ -185,7 +184,7 @@ const updateManualInput = (newDate, calendarType) => {
 };
 
 const handleManualInputError = message => {
-  bus.$emit('newToastMessage', message);
+  useAlert(message);
 };
 
 const resetDatePicker = () => {
@@ -201,7 +200,7 @@ const resetDatePicker = () => {
 
 const emitDateRange = () => {
   if (!isValid(selectedStartDate.value) || !isValid(selectedEndDate.value)) {
-    bus.$emit('newToastMessage', 'Please select a valid time range');
+    useAlert('Please select a valid time range');
   } else {
     showDatePicker.value = false;
     emit('dateRangeChanged', [selectedStartDate.value, selectedEndDate.value]);

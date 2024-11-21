@@ -1,5 +1,212 @@
+<script setup>
+import { ref, computed } from 'vue';
+import { useAlert } from 'dashboard/composables';
+import { useToggle } from '@vueuse/core';
+import { useI18n } from 'vue-i18n';
+import { useAdmin } from 'dashboard/composables/useAdmin';
+import { useStore, useStoreGetters } from 'dashboard/composables/store';
+import { useEmitter } from 'dashboard/composables/emitter';
+import { useUISettings } from 'dashboard/composables/useUISettings';
+import { useKeyboardEvents } from 'dashboard/composables/useKeyboardEvents';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
+
+import WootDropdownItem from 'shared/components/ui/dropdown/DropdownItem.vue';
+import WootDropdownMenu from 'shared/components/ui/dropdown/DropdownMenu.vue';
+import wootConstants from 'dashboard/constants/globals';
+import {
+  CMD_REOPEN_CONVERSATION,
+  CMD_RESOLVE_CONVERSATION,
+} from 'dashboard/helper/commandbar/events';
+
+const store = useStore();
+const getters = useStoreGetters();
+const { updateUISettings } = useUISettings();
+const { t } = useI18n();
+
+const arrowDownButtonRef = ref(null);
+const isLoading = ref(false);
+
+const [showActionsDropdown, toggleDropdown] = useToggle();
+const closeDropdown = () => toggleDropdown(false);
+const openDropdown = () => toggleDropdown(true);
+
+const currentChat = computed(() => getters.getSelectedChat.value);
+const accountId = computed(() => getters.getCurrentAccountId.value);
+const isFeatureEnabledonAccount = computed(() => getters['accounts/isFeatureEnabledonAccount'](accountId.value));
+
+const { isAdmin } = useAdmin();
+
+const isOpen = computed(
+  () => currentChat.value.status === wootConstants.STATUS_TYPE.OPEN
+);
+const isPending = computed(
+  () => currentChat.value.status === wootConstants.STATUS_TYPE.PENDING
+);
+const isResolved = computed(
+  () => currentChat.value.status === wootConstants.STATUS_TYPE.RESOLVED
+);
+const isSnoozed = computed(
+  () => currentChat.value.status === wootConstants.STATUS_TYPE.SNOOZED
+);
+const isClosed = computed(
+  () => currentChat.value.closed
+);
+const canCloseConversation = computed(() => {
+  return isAdmin && isResolved && !isClosed;
+});
+const canUncloseConversation = computed(() => {
+  return isAdmin && isResolved && isClosed;
+});
+
+const buttonClass = computed(() => {
+  if (isPending.value) return 'primary';
+  if (isOpen.value) return 'success';
+  if (isResolved.value) return 'warning';
+  return '';
+});
+
+const showAdditionalActions = computed(
+  () => !isPending.value && !isSnoozed.value
+);
+
+const inbox = computed(() => getters['inbox/getInbox'](currentChat.value.inbox_id));
+const enabledRequiredContactType = computed(() => {
+  return isFeatureEnabledonAccount(
+    accountId.value,
+    FEATURE_FLAGS.REQUIRED_CONTACT_TYPE
+  )
+});
+
+const showOpenButton = computed(() => {
+  return isPending.value || isSnoozed.value;
+});
+
+const getConversationParams = () => {
+  const allConversations = document.querySelectorAll(
+    '.conversations-list .conversation'
+  );
+
+  const activeConversation = document.querySelector(
+    'div.conversations-list div.conversation.active'
+  );
+  const activeConversationIndex = [...allConversations].indexOf(
+    activeConversation
+  );
+  const lastConversationIndex = allConversations.length - 1;
+
+  return {
+    all: allConversations,
+    activeIndex: activeConversationIndex,
+    lastIndex: lastConversationIndex,
+  };
+};
+
+const openSnoozeModal = () => {
+  const ninja = document.querySelector('ninja-keys');
+  ninja.open({ parent: 'snooze_conversation' });
+};
+
+const toggleStatus = (status, snoozedUntil) => {
+  closeDropdown();
+
+  if (inbox.value?.label_required && status === wootConstants.STATUS_TYPE.RESOLVED) {
+    if (currentChat.value?.labels.length === 0) {
+      useAlert(t('CONVERSATION.LABEL_REQUIRED'));
+      showContactSidebar();
+      return;
+    }
+  }
+
+  if (enabledRequiredContactType.value && !currentChat.value.contact_kind) {
+    useAlert(t('CONVERSATION.CONTACT_TYPE_REQUIRED'));
+    showContactSidebar();
+    return;
+  }
+
+  isLoading.value = true;
+  store
+    .dispatch('toggleStatus', {
+      conversationId: currentChat.value.id,
+      status,
+      snoozedUntil,
+    })
+    .then(() => {
+      useAlert(t('CONVERSATION.CHANGE_STATUS'));
+      isLoading.value = false;
+    });
+};
+
+const onCmdOpenConversation = () => {
+  toggleStatus(wootConstants.STATUS_TYPE.OPEN);
+};
+
+const onCmdResolveConversation = () => {
+  toggleStatus(wootConstants.STATUS_TYPE.RESOLVED);
+};
+
+const showContactSidebar = () => {
+  return updateUISettings({
+    is_contact_sidebar_open: true,
+    is_conv_actions_open: true,
+  });
+}
+
+const closeConversation = () => {
+  closeDropdown();
+  store.dispatch('closeConversation', {
+    conversationId: currentChat.value.id,
+    closed: true
+  }).then(() => {
+    useAlert('Conversation is closed');
+    currentChat.value.closed = true
+  });
+}
+
+const uncloseConversation = () => {
+  closeDropdown();
+  store.dispatch('closeConversation', {
+    conversationId: currentChat.value.id,
+    closed: false
+  }).then(() => {
+    useAlert('Conversation is unclosed');
+    currentChat.value.closed = false
+  });
+}
+
+const keyboardEvents = {
+  'Alt+KeyM': {
+    action: () => arrowDownButtonRef.value?.$el.click(),
+    allowOnFocusedInput: true,
+  },
+  'Alt+KeyE': {
+    action: async () => {
+      await toggleStatus(wootConstants.STATUS_TYPE.RESOLVED);
+    },
+  },
+  '$mod+Alt+KeyE': {
+    action: async event => {
+      const { all, activeIndex, lastIndex } = getConversationParams();
+      await toggleStatus(wootConstants.STATUS_TYPE.RESOLVED);
+
+      if (activeIndex < lastIndex) {
+        all[activeIndex + 1].click();
+      } else if (all.length > 1) {
+        all[0].click();
+        document.querySelector('.conversations-list').scrollTop = 0;
+      }
+      event.preventDefault();
+    },
+  },
+};
+
+useKeyboardEvents(keyboardEvents);
+
+useEmitter(CMD_REOPEN_CONVERSATION, onCmdOpenConversation);
+useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
+</script>
+
 <template>
-  <div class="resolve-actions relative flex items-center justify-end">
+  <div class="relative flex items-center justify-end resolve-actions">
     <div class="button-group">
       <woot-button
         v-if="isOpen"
@@ -21,7 +228,7 @@
         :is-loading="isLoading"
         @click="onCmdOpenConversation"
       >
-        {{ $t('CONVERSATION.HEADER.REOPEN_ACTION') }}
+        {{ t('CONVERSATION.HEADER.REOPEN_ACTION') }}
       </woot-button>
       <woot-button
         v-else-if="showOpenButton"
@@ -31,11 +238,11 @@
         :is-loading="isLoading"
         @click="onCmdOpenConversation"
       >
-        {{ $t('CONVERSATION.HEADER.OPEN_ACTION') }}
+        {{ t('CONVERSATION.HEADER.OPEN_ACTION') }}
       </woot-button>
       <woot-button
         v-if="showAdditionalActions"
-        ref="arrowDownButton"
+        ref="arrowDownButtonRef"
         :color-scheme="buttonClass"
         :disabled="isLoading"
         icon="chevron-down"
@@ -46,10 +253,10 @@
     <div
       v-if="showActionsDropdown"
       v-on-clickaway="closeDropdown"
-      class="dropdown-pane dropdown-pane--open"
+      class="dropdown-pane dropdown-pane--open left-auto top-[2.625rem] mt-0.5 right-0 max-w-[12.5rem] min-w-[9.75rem]"
     >
-      <woot-dropdown-menu class="mb-0">
-        <woot-dropdown-item v-if="!isPending">
+      <WootDropdownMenu class="mb-0">
+        <WootDropdownItem v-if="!isPending">
           <woot-button
             variant="clear"
             color-scheme="secondary"
@@ -57,21 +264,21 @@
             icon="snooze"
             @click="() => openSnoozeModal()"
           >
-            {{ $t('CONVERSATION.RESOLVE_DROPDOWN.SNOOZE_UNTIL') }}
+            {{ t('CONVERSATION.RESOLVE_DROPDOWN.SNOOZE_UNTIL') }}
           </woot-button>
-        </woot-dropdown-item>
-        <woot-dropdown-item v-if="!isPending">
+        </WootDropdownItem>
+        <WootDropdownItem v-if="!isPending">
           <woot-button
             variant="clear"
             color-scheme="secondary"
             size="small"
             icon="book-clock"
-            @click="() => toggleStatus(STATUS_TYPE.PENDING)"
+            @click="() => toggleStatus(wootConstants.STATUS_TYPE.PENDING)"
           >
-            {{ $t('CONVERSATION.RESOLVE_DROPDOWN.MARK_PENDING') }}
+            {{ t('CONVERSATION.RESOLVE_DROPDOWN.MARK_PENDING') }}
           </woot-button>
-        </woot-dropdown-item>
-        <woot-dropdown-item v-if="canCloseConversation">
+        </WootDropdownItem>
+        <WootDropdownItem v-if="canCloseConversation">
           <woot-button
             variant="clear"
             color-scheme="secondary"
@@ -81,8 +288,8 @@
           >
             {{ $t('CONVERSATION.RESOLVE_DROPDOWN.CLOSE') }}
           </woot-button>
-        </woot-dropdown-item>
-        <woot-dropdown-item v-if="canUncloseConversation">
+        </WootDropdownItem>
+        <WootDropdownItem v-if="canUncloseConversation">
           <woot-button
             variant="clear"
             color-scheme="secondary"
@@ -92,264 +299,14 @@
           >
             {{ $t('CONVERSATION.RESOLVE_DROPDOWN.UNCLOSE') }}
           </woot-button>
-        </woot-dropdown-item>
-      </woot-dropdown-menu>
+        </WootDropdownItem>
+      </WootDropdownMenu>
     </div>
-    <woot-modal
-      :show.sync="showCustomSnoozeModal"
-      :on-close="hideCustomSnoozeModal"
-    >
-      <custom-snooze-modal
-        @close="hideCustomSnoozeModal"
-        @choose-time="chooseSnoozeTime"
-      />
-    </woot-modal>
   </div>
 </template>
 
-<script>
-import { getUnixTime } from 'date-fns';
-import { mapGetters } from 'vuex';
-import alertMixin from 'shared/mixins/alertMixin';
-import CustomSnoozeModal from 'dashboard/components/CustomSnoozeModal.vue';
-import keyboardEventListenerMixins from 'shared/mixins/keyboardEventListenerMixins';
-import { findSnoozeTime } from 'dashboard/helper/snoozeHelpers';
-import WootDropdownItem from 'shared/components/ui/dropdown/DropdownItem.vue';
-import WootDropdownMenu from 'shared/components/ui/dropdown/DropdownMenu.vue';
-import uiSettingsMixin from 'dashboard/mixins/uiSettings';
-import adminMixin from 'dashboard/mixins/isAdmin';
-import { FEATURE_FLAGS } from 'dashboard/featureFlags';
-import wootConstants from 'dashboard/constants/globals';
-import {
-  CMD_REOPEN_CONVERSATION,
-  CMD_RESOLVE_CONVERSATION,
-  CMD_SNOOZE_CONVERSATION,
-} from '../../routes/dashboard/commands/commandBarBusEvents';
-
-export default {
-  components: {
-    WootDropdownItem,
-    WootDropdownMenu,
-    CustomSnoozeModal,
-  },
-  mixins: [alertMixin, keyboardEventListenerMixins, uiSettingsMixin, adminMixin],
-  props: { conversationId: { type: [String, Number], required: true } },
-  data() {
-    return {
-      isLoading: false,
-      showActionsDropdown: false,
-      STATUS_TYPE: wootConstants.STATUS_TYPE,
-      showCustomSnoozeModal: false,
-    };
-  },
-  computed: {
-    ...mapGetters({ 
-      currentChat: 'getSelectedChat',
-      accountId: 'getCurrentAccountId',
-      isFeatureEnabledonAccount: 'accounts/isFeatureEnabledonAccount',
-    }),
-    isOpen() {
-      return this.currentChat.status === wootConstants.STATUS_TYPE.OPEN;
-    },
-    isPending() {
-      return this.currentChat.status === wootConstants.STATUS_TYPE.PENDING;
-    },
-    isResolved() {
-      return this.currentChat.status === wootConstants.STATUS_TYPE.RESOLVED;
-    },
-    isSnoozed() {
-      return this.currentChat.status === wootConstants.STATUS_TYPE.SNOOZED;
-    },
-    isClosed(){
-      return this.currentChat.closed;
-    },
-    canCloseConversation() {
-      return this.isAdmin && this.isResolved && !this.isClosed
-    },
-    canUncloseConversation(){
-      return this.isAdmin && this.isResolved && this.isClosed
-    },
-    buttonClass() {
-      if (this.isPending) return 'primary';
-      if (this.isOpen) return 'success';
-      if (this.isResolved) return 'warning';
-      return '';
-    },
-    showAdditionalActions() {
-      return !this.isPending && !this.isSnoozed;
-    },
-    inbox() {
-      return this.$store.getters['inboxes/getInbox'](this.currentChat.inbox_id);
-    },
-    enabledRequiredContactType(){
-      return this.isFeatureEnabledonAccount(
-        this.accountId,
-        FEATURE_FLAGS.REQUIRED_CONTACT_TYPE,
-      );
-    },
-  },
-  mounted() {
-    bus.$on(CMD_SNOOZE_CONVERSATION, this.onCmdSnoozeConversation);
-    bus.$on(CMD_REOPEN_CONVERSATION, this.onCmdOpenConversation);
-    bus.$on(CMD_RESOLVE_CONVERSATION, this.onCmdResolveConversation);
-  },
-  destroyed() {
-    bus.$off(CMD_SNOOZE_CONVERSATION, this.onCmdSnoozeConversation);
-    bus.$off(CMD_REOPEN_CONVERSATION, this.onCmdOpenConversation);
-    bus.$off(CMD_RESOLVE_CONVERSATION, this.onCmdResolveConversation);
-  },
-  methods: {
-    getKeyboardEvents() {
-      return {
-        'Alt+KeyM': {
-          action: () => this.$refs.arrowDownButton?.$el.click(),
-          allowOnFocusedInput: true,
-        },
-        'Alt+KeyE': this.resolveOrToast,
-        '$mod+Alt+KeyE': async event => {
-          const { all, activeIndex, lastIndex } = this.getConversationParams();
-          await this.resolveOrToast();
-
-          if (activeIndex < lastIndex) {
-            all[activeIndex + 1].click();
-          } else if (all.length > 1) {
-            all[0].click();
-            document.querySelector('.conversations-list').scrollTop = 0;
-          }
-
-          event.preventDefault();
-        },
-      };
-    },
-    getConversationParams() {
-      const allConversations = document.querySelectorAll(
-        '.conversations-list .conversation'
-      );
-
-      const activeConversation = document.querySelector(
-        'div.conversations-list div.conversation.active'
-      );
-      const activeConversationIndex = [...allConversations].indexOf(
-        activeConversation
-      );
-      const lastConversationIndex = allConversations.length - 1;
-
-      return {
-        all: allConversations,
-        activeIndex: activeConversationIndex,
-        lastIndex: lastConversationIndex,
-      };
-    },
-    async resolveOrToast() {
-      try {
-        await this.toggleStatus(wootConstants.STATUS_TYPE.RESOLVED);
-      } catch (error) {
-        // error
-      }
-    },
-    onCmdSnoozeConversation(snoozeType) {
-      if (snoozeType === wootConstants.SNOOZE_OPTIONS.UNTIL_CUSTOM_TIME) {
-        this.showCustomSnoozeModal = true;
-      } else {
-        this.toggleStatus(
-          this.STATUS_TYPE.SNOOZED,
-          findSnoozeTime(snoozeType) || null
-        );
-      }
-    },
-    chooseSnoozeTime(customSnoozeTime) {
-      this.showCustomSnoozeModal = false;
-      if (customSnoozeTime) {
-        this.toggleStatus(
-          this.STATUS_TYPE.SNOOZED,
-          getUnixTime(customSnoozeTime)
-        );
-      }
-    },
-    hideCustomSnoozeModal() {
-      this.showCustomSnoozeModal = false;
-    },
-    onCmdOpenConversation() {
-      this.toggleStatus(this.STATUS_TYPE.OPEN);
-    },
-    onCmdResolveConversation() {
-      this.toggleStatus(this.STATUS_TYPE.RESOLVED);
-    },
-    showOpenButton() {
-      return this.isResolved || this.isSnoozed;
-    },
-    closeDropdown() {
-      this.showActionsDropdown = false;
-    },
-    openDropdown() {
-      this.showActionsDropdown = true;
-    },
-    showContactSidebar(){
-      this.updateUISettings({
-        is_contact_sidebar_open: true,
-        is_conv_actions_open: true,
-      });
-    },
-    toggleStatus(status, snoozedUntil) {
-      this.closeDropdown();
-
-      if (this.inbox.label_required && status === this.STATUS_TYPE.RESOLVED){
-        if (this.currentChat.labels.length === 0){
-          this.showAlert(this.$t('CONVERSATION.LABEL_REQUIRED'));
-          this.showContactSidebar();
-          return;
-        }
-      }
-
-      if (this.enabledRequiredContactType && !this.currentChat.contact_kind){
-        this.showAlert(this.$t('CONVERSATION.CONTACT_TYPE_REQUIRED'));
-        this.showContactSidebar();
-        return;
-      }
-
-      this.isLoading = true;
-      this.$store
-        .dispatch('toggleStatus', {
-          conversationId: this.currentChat.id,
-          status,
-          snoozedUntil,
-        })
-        .then(() => {
-          this.showAlert(this.$t('CONVERSATION.CHANGE_STATUS'));
-          this.isLoading = false;
-        });
-    },
-    openSnoozeModal() {
-      const ninja = document.querySelector('ninja-keys');
-      ninja.open({ parent: 'snooze_conversation' });
-    },
-    closeConversation(){
-      this.closeDropdown();
-      this.$store.dispatch('closeConversation', {
-          conversationId: this.currentChat.id,
-          closed: true
-        }).then(() => {
-          this.showAlert('Conversation is closed');
-          this.currentChat.closed = true
-        });
-    },
-    uncloseConversation(){
-      this.closeDropdown();
-      this.$store.dispatch('closeConversation', {
-          conversationId: this.currentChat.id,
-          closed: false
-        }).then(() => {
-          this.showAlert('Conversation is unclosed');
-          this.currentChat.closed = false
-        });
-    }
-  },
-};
-</script>
 <style lang="scss" scoped>
 .dropdown-pane {
-  @apply left-auto top-[2.625rem] mt-0.5 right-0 max-w-[12.5rem] min-w-[9.75rem];
-
   .dropdown-menu__item {
     @apply mb-0;
   }

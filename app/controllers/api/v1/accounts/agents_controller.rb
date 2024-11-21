@@ -25,7 +25,7 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
 
   def update
     @agent.update!(agent_params.slice(:name).compact)
-    @agent.current_account_user.update!(agent_params.slice(:role, :availability, :auto_offline).compact)
+    @agent.current_account_user.update!(agent_params.slice(*account_user_attributes).compact)
     update_teams_and_inboxes
   end
 
@@ -74,8 +74,16 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
     @agent = agents.find(params[:id])
   end
 
+  def account_user_attributes
+    [:role, :availability, :auto_offline]
+  end
+
+  def allowed_agent_params
+    [:name, :email, :name, :role, :availability, :auto_offline]
+  end
+
   def agent_params
-    params.require(:agent).permit(:name, :email, :name, :role, :availability, :auto_offline)
+    params.require(:agent).permit(allowed_agent_params)
   end
 
   def new_agent_params
@@ -116,3 +124,5 @@ class Api::V1::Accounts::AgentsController < Api::V1::Accounts::BaseController
     DeleteObjectJob.perform_later(agent) if agent.reload.account_users.blank?
   end
 end
+
+Api::V1::Accounts::AgentsController.prepend_mod_with('Api::V1::Accounts::AgentsController')

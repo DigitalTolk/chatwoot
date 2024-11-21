@@ -67,7 +67,7 @@ import { mapGetters } from 'vuex';
 import Spinner from 'shared/components/Spinner.vue';
 import { CSAT_RATINGS } from 'shared/constants/messages';
 import FluentIcon from 'shared/components/FluentIcon/Index.vue';
-import darkModeMixin from 'widget/mixins/darkModeMixin';
+import { useDarkMode } from 'widget/composables/useDarkMode';
 import { getContrastingTextColor } from '@chatwoot/utils';
 
 export default {
@@ -75,7 +75,6 @@ export default {
     Spinner,
     FluentIcon,
   },
-  mixins: [darkModeMixin],
   props: {
     messageContentAttributes: {
       type: Object,
@@ -89,6 +88,10 @@ export default {
       type: String,
       default: '',
     },
+  },
+  setup() {
+    const { getThemeClass } = useDarkMode();
+    return { getThemeClass };
   },
   data() {
     return {
@@ -120,8 +123,8 @@ export default {
       return !(this.selectedRating && this.feedback);
     },
     inputColor() {
-      return `${this.$dm('bg-white', 'dark:bg-slate-600')}
-        ${this.$dm('text-black-900', 'dark:text-slate-50')}`;
+      return `${this.getThemeClass('bg-white', 'dark:bg-slate-600')}
+        ${this.getThemeClass('text-black-900', 'dark:text-slate-50')}`;
     },
     textColor() {
       return getContrastingTextColor(this.widgetColor);
@@ -183,9 +186,59 @@ export default {
 };
 </script>
 
+<template>
+  <div
+    class="customer-satisfaction"
+    :class="getThemeClass('bg-white', 'dark:bg-slate-700')"
+    :style="{ borderColor: widgetColor }"
+  >
+    <h6
+      class="title"
+      :class="getThemeClass('text-slate-900', 'dark:text-slate-50')"
+    >
+      {{ title }}
+    </h6>
+    <div class="ratings">
+      <button
+        v-for="rating in ratings"
+        :key="rating.key"
+        :class="buttonClass(rating)"
+        @click="selectRating(rating)"
+      >
+        {{ rating.emoji }}
+      </button>
+    </div>
+    <form
+      v-if="!isFeedbackSubmitted"
+      class="feedback-form"
+      @submit.prevent="onSubmit()"
+    >
+      <input
+        v-model="feedback"
+        class="form-input"
+        :class="inputColor"
+        :placeholder="$t('CSAT.PLACEHOLDER')"
+        @keydown.enter="onSubmit"
+      />
+      <button
+        class="button small"
+        :disabled="isButtonDisabled"
+        :style="{
+          background: widgetColor,
+          borderColor: widgetColor,
+          color: textColor,
+        }"
+      >
+        <Spinner v-if="isUpdating && feedback" />
+        <FluentIcon v-else icon="chevron-right" />
+      </button>
+    </form>
+  </div>
+</template>
+
 <style lang="scss" scoped>
-@import '~widget/assets/scss/variables.scss';
-@import '~widget/assets/scss/mixins.scss';
+@import 'widget/assets/scss/variables.scss';
+@import 'widget/assets/scss/mixins.scss';
 
 .customer-satisfaction {
   @include light-shadow;
@@ -232,6 +285,7 @@ export default {
       }
     }
   }
+
   .feedback-form {
     display: flex;
 

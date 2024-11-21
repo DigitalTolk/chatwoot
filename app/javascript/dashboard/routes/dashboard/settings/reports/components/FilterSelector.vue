@@ -1,64 +1,3 @@
-<template>
-  <div class="flex flex-col justify-between gap-3 mb-4 md:flex-row">
-    <div
-      class="w-full grid gap-y-2 gap-x-1.5 grid-cols-[repeat(auto-fill,minmax(250px,1fr))]"
-    >
-      <reports-filters-date-range @on-range-change="onDateRangeChange" />
-      <woot-date-range-picker
-        v-if="isDateRangeSelected"
-        show-range
-        class="no-margin auto-width"
-        :value="customDateRange"
-        :confirm-text="$t('REPORT.CUSTOM_DATE_RANGE.CONFIRM')"
-        :placeholder="$t('REPORT.CUSTOM_DATE_RANGE.PLACEHOLDER')"
-        @change="onCustomDateRangeChange"
-      />
-      <reports-filters-date-group-by
-        v-if="showGroupByFilter && isGroupByPossible"
-        :valid-group-options="validGroupOptions"
-        :selected-option="selectedGroupByFilter"
-        @on-grouping-change="onGroupingChange"
-      />
-      <reports-filters-agents
-        v-if="showAgentsFilter"
-        @agents-filter-selection="handleAgentsFilterSelection"
-      />
-      <reports-filters-labels
-        v-if="showLabelsFilter"
-        @labels-filter-selection="handleLabelsFilterSelection"
-        :multiple="multipleLabels"
-      />
-      <reports-filters-teams
-        v-if="showTeamFilter"
-        @team-filter-selection="handleTeamFilterSelection"
-        :multiple="multipleTeams"
-      />
-      <reports-filters-inboxes
-        v-if="showInboxFilter"
-        @inbox-filter-selection="handleInboxFilterSelection"
-        :multiple="multipleInboxes"
-      />
-      <reports-filters-ratings
-        v-if="showRatingFilter"
-        @rating-filter-selection="handleRatingFilterSelection"
-        :multiple="multipleRatings"
-      />
-      <reports-filters-questions
-        v-if="showQuestionFilter"
-        @question-filter-selection="handleRatingQuestionSelection"
-        :multiple="multipleQuestions"
-      />
-    </div>
-    <div v-if="showBusinessHoursSwitch" class="flex items-baseline">
-      <span class="mx-2 text-sm whitespace-nowrap">
-        {{ $t('REPORT.BUSINESS_HOURS') }}
-      </span>
-      <span>
-        <woot-switch v-model="businessHoursSelected" />
-      </span>
-    </div>
-  </div>
-</template>
 <script>
 import WootDateRangePicker from 'dashboard/components/ui/DateRangePicker.vue';
 import ReportsFiltersDateRange from './Filters/DateRange.vue';
@@ -86,10 +25,6 @@ export default {
     ReportsFiltersQuestions,
   },
   props: {
-    filterItemsList: {
-      type: Array,
-      default: () => [],
-    },
     showGroupByFilter: {
       type: Boolean,
       default: false,
@@ -143,6 +78,7 @@ export default {
       default: false,
     }
   },
+  emits: ['filterChange'],
   data() {
     return {
       // default value, need not be translated
@@ -219,7 +155,7 @@ export default {
         selectedRating,
         selectedQuestion,
       } = this;
-      this.$emit('filter-change', {
+      this.$emit('filterChange', {
         from,
         to,
         groupBy,
@@ -273,3 +209,65 @@ export default {
   },
 };
 </script>
+
+<template>
+  <div class="flex flex-col justify-between gap-3 mb-4 md:flex-row">
+    <div
+      class="w-full grid gap-y-2 gap-x-1.5 grid-cols-[repeat(auto-fill,minmax(250px,1fr))]"
+    >
+      <ReportsFiltersDateRange @on-range-change="onDateRangeChange" />
+      <WootDateRangePicker
+        v-if="isDateRangeSelected"
+        show-range
+        class="no-margin auto-width"
+        :value="customDateRange"
+        :confirm-text="$t('REPORT.CUSTOM_DATE_RANGE.CONFIRM')"
+        :placeholder="$t('REPORT.CUSTOM_DATE_RANGE.PLACEHOLDER')"
+        @change="onCustomDateRangeChange"
+      />
+      <ReportsFiltersDateGroupBy
+        v-if="showGroupByFilter && isGroupByPossible"
+        :valid-group-options="validGroupOptions"
+        :selected-option="selectedGroupByFilter"
+        @on-grouping-change="onGroupingChange"
+      />
+      <ReportsFiltersAgents
+        v-if="showAgentsFilter"
+        @agents-filter-selection="handleAgentsFilterSelection"
+      />
+      <ReportsFiltersLabels
+        v-if="showLabelsFilter"
+        @labels-filter-selection="handleLabelsFilterSelection"
+        :multiple="multipleLabels"
+      />
+      <ReportsFiltersTeams
+        v-if="showTeamFilter"
+        @team-filter-selection="handleTeamFilterSelection"
+        :multiple="multipleTeams"
+      />
+      <ReportsFiltersInboxes
+        v-if="showInboxFilter"
+        @inbox-filter-selection="handleInboxFilterSelection"
+        :multiple="multipleInboxes"
+      />
+      <ReportsFiltersRatings
+        v-if="showRatingFilter"
+        @rating-filter-selection="handleRatingFilterSelection"
+        :multiple="multipleRatings"
+      />
+      <ReportsFiltersQuestions
+        v-if="showQuestionFilter"
+        @question-filter-selection="handleRatingQuestionSelection"
+        :multiple="multipleQuestions"
+      />
+    </div>
+    <div v-if="showBusinessHoursSwitch" class="flex items-center">
+      <span class="mx-2 text-sm whitespace-nowrap">
+        {{ $t('REPORT.BUSINESS_HOURS') }}
+      </span>
+      <span>
+        <woot-switch v-model="businessHoursSelected" />
+      </span>
+    </div>
+  </div>
+</template>

@@ -1,50 +1,12 @@
-<template>
-  <div class="flex-1 overflow-auto p-4">
-    <report-filter-selector
-      :show-agents-filter="true"
-      :show-inbox-filter="true"
-      :show-rating-filter="true"
-      :show-labels-filter="true"
-      :show-team-filter="isTeamsEnabled"
-      :show-business-hours-switch="false"
-      :show-question-filter="true"
-      @filter-change="onFilterChange"
-      :multiple-labels="true"
-      :multiple-teams="true"
-      :multiple-inboxes="true"
-      :multiple-ratings="true"
-      :multiple-questions="true"
-    />
-    <woot-button
-      color-scheme="success"
-      class-names="button--fixed-top"
-      icon="arrow-download"
-      @click="downloadReports"
-    >
-      {{ $t('CSAT_REPORTS.DOWNLOAD') }}
-    </woot-button>
-    <csat-metrics :filters="requestPayload" />
-    <div>
-      <input v-model="groudByQuestions" type="checkbox" :value="true" />
-      <label>Group by questions</label>
-    </div>
-    <csat-question-group v-if="groudByQuestions" />
-    <csat-table
-      v-else
-      :page-index="pageIndex"
-      @page-change="onPageNumberChange"
-    />
-  </div>
-</template>
 <script>
+import { mapGetters } from 'vuex';
+import { useAlert, useTrack } from 'dashboard/composables';
 import CsatMetrics from './components/CsatMetrics.vue';
 import CsatTable from './components/CsatTable.vue';
 import ReportFilterSelector from './components/FilterSelector.vue';
 import { generateFileName } from '../../../../helper/downloadHelper';
 import { REPORTS_EVENTS } from '../../../../helper/AnalyticsHelper/events';
-import { mapGetters } from 'vuex';
 import { FEATURE_FLAGS } from '../../../../featureFlags';
-import alertMixin from '../../../../../shared/mixins/alertMixin';
 import CsatQuestionGroup from './components/CsatQuestionGroup.vue';
 
 export default {
@@ -55,10 +17,9 @@ export default {
     ReportFilterSelector,
     CsatQuestionGroup,
   },
-  mixins: [alertMixin],
   data() {
     return {
-      pageIndex: 1,
+      pageIndex: 0,
       from: 0,
       to: 0,
       userIds: [],
@@ -101,12 +62,12 @@ export default {
         this.$store.dispatch('csat/getQuestions', this.requestPayload);
         this.getResponses();
       } catch {
-        this.showAlert(this.$t('REPORT.DATA_FETCHING_FAILED'));
+        useAlert(this.$t('REPORT.DATA_FETCHING_FAILED'));
       }
     },
     getResponses() {
       this.$store.dispatch('csat/get', {
-        page: this.pageIndex,
+        page: this.pageIndex + 1,
         ...this.requestPayload,
       });
     },
@@ -118,7 +79,7 @@ export default {
           ...this.requestPayload,
         });
       } catch (error) {
-        this.showAlert(this.$t('REPORT.CSAT_REPORTS.DOWNLOAD_FAILED'));
+        useAlert(this.$t('REPORT.CSAT_REPORTS.DOWNLOAD_FAILED'));
       }
     },
     onPageNumberChange(pageIndex) {
@@ -137,7 +98,7 @@ export default {
     }) {
       // do not track filter change on inital load
       if (this.from !== 0 && this.to !== 0) {
-        this.$track(REPORTS_EVENTS.FILTER_REPORT, {
+        useTrack(REPORTS_EVENTS.FILTER_REPORT, {
           filterType: 'date',
           reportType: 'csat',
         });
@@ -156,3 +117,38 @@ export default {
   },
 };
 </script>
+
+<template>
+  <div class="flex-1 p-4 overflow-auto">
+    <ReportFilterSelector
+      show-agents-filter
+      show-inbox-filter
+      show-rating-filter
+      show-labels-filter
+      show-question-filter
+      :show-team-filter="isTeamsEnabled"
+      :show-business-hours-switch="false"
+      @filter-change="onFilterChange"
+      multiple-labels
+      multiple-teams
+      multiple-inboxes
+      multiple-ratings
+      multiple-questions
+    />
+    <woot-button
+      color-scheme="success"
+      class-names="button--fixed-top"
+      icon="arrow-download"
+      @click="downloadReports"
+    >
+      {{ $t('CSAT_REPORTS.DOWNLOAD') }}
+    </woot-button>
+    <CsatMetrics :filters="requestPayload" />
+    <div>
+      <input v-model="groudByQuestions" type="checkbox" :value="true" />
+      <label>Group by questions</label>
+    </div>
+    <CsatQuestionGroup v-if="groudByQuestions" />
+    <CsatTable v-else :page-index="pageIndex" @page-change="onPageNumberChange" />
+  </div>
+</template>

@@ -12,7 +12,7 @@ class ChatwootMarkdownRenderer
 
   def render_article
     markdown_renderer = CustomMarkdownRenderer.new(options: :UNSAFE)
-    doc = CommonMarker.render_doc(@content, :UNSAFE)
+    doc = CommonMarker.render_doc(@content, :UNSAFE, [:table])
     html = markdown_renderer.render(doc)
     render_as_html_safe(html)
   end

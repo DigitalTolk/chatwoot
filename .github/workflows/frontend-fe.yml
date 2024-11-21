@@ -1,0 +1,54 @@
+name: Frontend Lint & Test
+
+on:
+  push:
+    branches:
+      - master-staging
+  pull_request:
+    branches:
+      - master-staging
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      - name: install parquet libraries
+        run: |
+          sudo apt update
+          sudo apt install -y -V ca-certificates lsb-release wget
+          wget https://apache.jfrog.io/artifactory/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb
+          sudo apt install -y -V ./apache-arrow-apt-source-latest-$(lsb_release --codename --short).deb
+          sudo apt update
+          sudo apt-get install -y  libarrow-dev libarrow-glib-dev libparquet-glib-dev libgirepository-1.0-1 libgirepository1.0-dev
+          sudo sed -i -e 's/-std=c++11//g' /usr/lib/x86_64-linux-gnu/pkgconfig/re2.pc
+
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.3.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 21
+          cache: 'pnpm'
+
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run eslint
+        run: pnpm run eslint
+
+      - name: Run frontend tests with coverage
+        run: |
+          mkdir -p coverage
+          pnpm run test:coverage

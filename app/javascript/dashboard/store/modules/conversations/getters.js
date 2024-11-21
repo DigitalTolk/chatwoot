@@ -1,6 +1,7 @@
 import { MESSAGE_TYPE } from 'shared/constants/messages';
 import { SMART_ACTION_EVENTS } from 'shared/constants/smartActionEvents';
 import { applyPageFilters, sortComparator } from './helpers';
+import filterQueryGenerator from 'dashboard/helper/filterQueryGenerator';
 
 export const getSelectedChatConversation = ({
   allConversations,
@@ -18,10 +19,10 @@ const getters = {
     );
     return selectedChat || {};
   },
-  getSelectedChatAttachments: (_state, _getters) => {
-    const selectedChat = _getters.getSelectedChat;
-    return selectedChat.attachments || [];
+  getSelectedChatAttachments: ({ selectedChatId, attachments }) => {
+    return attachments[selectedChatId] || [];
   },
+  getChatListFilters: ({ conversationFilters }) => conversationFilters,
   getLastEmailInSelectedChat: (stage, _getters) => {
     const selectedChat = _getters.getSelectedChat;
     const { messages = [] } = selectedChat;
@@ -56,6 +57,10 @@ const getters = {
   },
   getAppliedConversationFilters: _state => {
     return _state.appliedFilters;
+  },
+  getAppliedConversationFiltersQuery: _state => {
+    const hasAppliedFilters = _state.appliedFilters.length !== 0;
+    return hasAppliedFilters ? filterQueryGenerator(_state.appliedFilters) : [];
   },
   getUnAssignedChats: _state => activeFilters => {
     return _state.allConversations.filter(conversation => {
@@ -120,6 +125,9 @@ const getters = {
   },
   getSmartActionsContext: _state => {
     return _state.smartActionsContext;
+  },
+  getContextMenuChatId: _state => {
+    return _state.contextMenuChatId;
   },
 };
 
